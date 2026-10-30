@@ -1,0 +1,477 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* App Frame (Native Mobile Phone Shell on Desktop, Fullscreen on Mobile) */
+.app-frame {
+  width: 100%;
+  max-width: 430px;
+  height: 880px;
+  max-height: calc(100vh - 32px);
+  background: var(--bg-frame);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1.5px solid var(--border-medium);
+  box-shadow: var(--shadow-lg);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+@media (max-width: 480px) {
+  .app-frame {
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+/* Header */
+.app-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid var(--border-subtle);
+  background: var(--bg-header);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--color-nimiq-gold) 0%, var(--color-nimiq-gold-dark) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0F172A;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(246, 174, 45, 0.35);
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.brand-sub {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Status Badge */
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--color-emerald-light);
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-emerald);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-emerald);
+  box-shadow: 0 0 6px var(--color-emerald);
+}
+
+/* Content Body */
+.view-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 16px 24px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) transparent;
+}
+
+.view-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.view-body::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+
+/* Hero Card (Spendable Purchasing Power Card) */
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 20px;
+  background: var(--bg-card-hero);
+  border: 1.5px solid var(--border-hero);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hero);
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.hero-card::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(246, 174, 45, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(24px);
+}
+
+.balance-fiat-hero {
+  font-family: var(--font-mono);
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin: 6px 0;
+}
+
+.balance-crypto-sub {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 3 African Fintech Action Pillars Grid */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-surface-elevated);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 6px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.action-btn:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-btn:active {
+  transform: scale(0.96);
+}
+
+.action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.action-btn:hover .action-icon {
+  transform: scale(1.06);
+}
+
+.action-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.action-sub {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: -4px;
+}
+
+/* Slide to Pay Component */
+.slide-track {
+  position: relative;
+  height: 58px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  box-shadow: var(--shadow-sm);
+}
+
+.slide-track:active {
+  cursor: grabbing;
+}
+
+.slide-track-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(246, 174, 45, 0.2), rgba(246, 174, 45, 0.5));
+  pointer-events: none;
+  border-radius: var(--radius-full);
+}
+
+.slide-thumb {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--color-nimiq-gold) 0%, var(--color-nimiq-gold-dark) 100%);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0F172A;
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(246, 174, 45, 0.5);
+  cursor: grab;
+  z-index: 2;
+  transition: box-shadow 0.15s ease;
+}
+
+.slide-thumb:active {
+  cursor: grabbing;
+  box-shadow: 0 4px 22px rgba(246, 174, 45, 0.8);
+}
+
+/* Modals (Native Mobile Sheet Style) */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-sheet {
+  width: 100%;
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  border-top: 1.5px solid var(--border-medium);
+  border-radius: 28px 28px 0 0;
+  padding: 16px 20px 28px 20px;
+  box-shadow: var(--shadow-lg);
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  margin: 0 auto 16px auto;
+}
+
+/* Bottom Navigation Dock (Native Mobile Dock) */
+.bottom-nav {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  height: 66px;
+  background: var(--bg-nav);
+  backdrop-filter: blur(24px);
+  border-top: 1.5px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 10px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 50;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 14px;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex: 1;
+  position: relative;
+}
+
+.nav-tab:hover {
+  color: var(--text-primary);
+}
+
+.nav-tab:active {
+  transform: scale(0.92);
+}
+
+.nav-tab.active {
+  color: var(--color-nimiq-gold-dark);
+  background: var(--color-nimiq-gold-subtle);
+}
+
+/* Theme-specific adjustments for active nav icon */
+.theme-dark .nav-tab.active {
+  color: var(--color-nimiq-gold);
+}
+
+/* Common UI Elements */
+.input-field {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  color: var(--text-primary);
+  font-size: 0.96rem;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-field:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(246, 174, 45, 0.2);
+}
+
+.input-field::placeholder {
+  color: var(--text-subtle);
+}
+
+.tab-group {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tab-btn.active {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Pulse & Status Animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pulse {
+  animation: pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}

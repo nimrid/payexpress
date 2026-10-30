@@ -1,0 +1,116 @@
+:root {
+  /* Common Brand Colors */
+  --color-nimiq-gold: #F6AE2D;
+  --color-nimiq-gold-hover: #E29A1B;
+  --color-nimiq-gold-dark: #B45309;
+  --color-nimiq-gold-light: #FEF3C7;
+  --color-nimiq-gold-subtle: rgba(246, 174, 45, 0.16);
+  
+  /* African Telco & Fintech Rail Colors */
+  --color-mpesa-green: #00A651;
+  --color-emerald: #059669;
+  --color-emerald-light: #D1FAE5;
+  --color-mtn-yellow: #EAB308;
+  --color-airtel-red: #DC2626;
+  --color-wave-blue: #0284C7;
+  --color-cyan: #0284C7;
+  --color-cyan-light: #E0F2FE;
+  --color-violet: #7C3AED;
+  --color-violet-light: #EDE9FE;
+  --color-rose: #E11D48;
+  --color-amber: #D97706;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Corner Radius */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --radius-full: 9999px;
+}
+
+/* Light / Daylight High-Contrast Theme (Default for outdoor sunlight readability & trust) */
+:root, .theme-light {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --bg-app: #F1F5F9;
+  --bg-frame: #FFFFFF;
+  --bg-surface: #F8FAFC;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-hover: #EDF2F7;
+  --bg-card-hero: linear-gradient(145deg, #FFFDF8 0%, #FFF8EB 100%);
+  --bg-input: #FFFFFF;
+  --bg-header: rgba(255, 255, 255, 0.94);
+  --bg-modal: #FFFFFF;
+  --bg-overlay: rgba(15, 23, 42, 0.65);
+  --bg-nav: rgba(255, 255, 255, 0.96);
+  --bg-pill: rgba(0, 0, 0, 0.06);
+  --bg-pill-hover: rgba(0, 0, 0, 0.1);
+
+  /* High-Contrast Borders */
+  --border-subtle: #E2E8F0;
+  --border-medium: #CBD5E1;
+  --border-strong: #94A3B8;
+  --border-hero: #FCD34D;
+  --border-focus: #F6AE2D;
+
+  /* Typography & Ink */
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --text-subtle: #94A3B8;
+  --text-inverse: #FFFFFF;
+  --text-accent: #B45309;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-hero: 0 10px 28px -4px rgba(246, 174, 45, 0.22), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark / Night High-Contrast Theme */
+.theme-dark {
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-app: #06090F;
+  --bg-frame: #0B0F19;
+  --bg-surface: #141B29;
+  --bg-surface-elevated: #1B2438;
+  --bg-surface-hover: #232E47;
+  --bg-card-hero: linear-gradient(145deg, #172136 0%, #0F1626 100%);
+  --bg-input: #0E1422;
+  --bg-header: rgba(11, 15, 25, 0.95);
+  --bg-modal: #111726;
+  --bg-overlay: rgba(0, 0, 0, 0.82);
+  --bg-nav: rgba(11, 15, 25, 0.96);
+  --bg-pill: rgba(255, 255, 255, 0.08);
+  --bg-pill-hover: rgba(255, 255, 255, 0.14);
+
+  /* High-Contrast Borders */
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-medium: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.28);
+  --border-hero: rgba(246, 174, 45, 0.4);
+  --border-focus: #F6AE2D;
+
+  /* Typography & Ink */
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-subtle: #64748B;
+  --text-inverse: #0F172A;
+  --text-accent: #FBBF24;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+  --shadow-hero: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(246, 174, 45, 0.15);
+}

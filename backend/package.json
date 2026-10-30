@@ -1,0 +1,17 @@
+{
+  "name": "payexpress-backend",
+  "version": "1.0.0",
+  "description": "PayExpress Backend API integrating Cashramp SDK for Nimiq Pay",
+  "main": "src/index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cashramp": "^0.0.13",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
