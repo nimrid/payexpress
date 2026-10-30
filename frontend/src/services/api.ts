@@ -151,15 +151,4 @@ export const API = {
       return { success: false, error: (err as Error).message };
     }
   },
-
-  async getUtilityCatalog(countryCode: string) {
-    try {
-      const res = await fetch(`${BASE_URL}/api/utility-catalog?countryCode=${countryCode}`);
-      const json = await res.json();
-      return json.catalog || null;
-    } catch (err) {
-      console.error('API getUtilityCatalog error:', err);
-      return null;
-    }
-  },
 };

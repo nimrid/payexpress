@@ -67,7 +67,18 @@ export const useRamp = () => {
     return matched || DEFAULT_POPULAR_COUNTRIES[0];
   });
   const [activeCrypto, setActiveCrypto] = useState<CryptoAsset>('NIM');
-  const [selectedChain, setSelectedChain] = useState<SupportedChainKey>('polygon');
+  const [selectedChain, setSelectedChainState] = useState<SupportedChainKey>(() => {
+    const saved = localStorage.getItem('payexpress_selected_chain') as SupportedChainKey;
+    if (saved && SUPPORTED_EVM_CHAINS[saved]) return saved;
+    return 'polygon';
+  });
+
+  const setSelectedChain = (chainKey: SupportedChainKey) => {
+    setSelectedChainState(chainKey);
+    localStorage.setItem('payexpress_selected_chain', chainKey);
+    EVM.switchChain(chainKey).catch((err) => console.warn('Chain switch error:', err));
+  };
+
   const [rate, setRate] = useState<MarketRate | null>(null);
 
   // Balances
@@ -425,36 +436,6 @@ export const useRamp = () => {
     return tx;
   };
 
-  // Execute Airtime
-  const executeAirtime = (bundleName: string, priceFiat: number): Transaction => {
-    const cryptoCost = activeCrypto === 'NIM'
-      ? parseFloat((priceFiat / currentRateNum / nimUsdRate).toFixed(1))
-      : parseFloat((priceFiat / currentRateNum).toFixed(2));
-
-    const tx: Transaction = {
-      id: `AIR-${Date.now().toString().slice(-6)}`,
-      telcoRef: `CR${Math.floor(100000 + Math.random() * 900000)}X9`,
-      status: 'COMPLETED',
-      type: 'airtime',
-      title: bundleName,
-      sub: 'Mobile Bundle Top-up',
-      recipient: activeCountry.dial,
-      fiatAmount: priceFiat,
-      fiatCurrency: activeCountry.currency,
-      cryptoAsset: activeCrypto,
-      cryptoAmount: cryptoCost.toString(),
-      timestamp: new Date().toISOString(),
-      smsConfirmation: `Cashramp Confirmed: ${bundleName} loaded successfully on your line.`,
-    };
-
-    if (activeCrypto === 'NIM') setNimBalance((b) => Math.max(0, b - cryptoCost));
-    else if (activeCrypto === 'USDT') setUsdtBalance((b) => Math.max(0, b - cryptoCost));
-    else setUsdcBalance((b) => Math.max(0, b - cryptoCost));
-
-    setTransactions((prev) => [tx, ...prev]);
-    return tx;
-  };
-
   const resetBalance = () => {
     setNimBalance(15000);
     setUsdcBalance(150);
@@ -485,7 +466,6 @@ export const useRamp = () => {
     executeSpend,
     executeCashOut,
     executeDeposit,
-    executeAirtime,
     resetBalance,
   };
 };

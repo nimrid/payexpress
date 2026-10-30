@@ -39,8 +39,6 @@ export const translations = {
     cashOutDesc: 'Off-ramp to Mobile Money / Bank',
     addFunds: 'Add Funds',
     addFundsDesc: 'On-ramp Fiat via STK Push / Bank',
-    airtimeBills: 'Airtime & Bills',
-    airtimeBillsDesc: 'Instant Telco Data & Utility Payments',
 
     // Merchant Pay
     merchantType: 'Merchant Type',
@@ -77,18 +75,10 @@ export const translations = {
     depositViaBank: 'Deposit via Bank Transfer',
     bankTransferInfo: 'Transfer to designated virtual account',
 
-    // Airtime & Bills
-    selectTelco: 'Select Network Provider',
-    airtimeType: 'Airtime or Data',
-    selectAmount: 'Select Amount',
-    rechargePhone: 'Phone Number to Recharge',
-    instantDelivery: 'Instant bundle top-up within 10 seconds',
-
     // Slider & Common
     slideToPay: 'Slide to Pay',
     slideToCashOut: 'Slide to Cash Out',
     slideToAddFunds: 'Slide to Add Funds',
-    slideToRecharge: 'Slide to Recharge',
     processing: 'Processing transaction...',
     approvingNimiq: 'Requesting Nimiq Pay approval...',
     txSuccessful: 'Transaction Completed Successfully!',
@@ -141,8 +131,6 @@ export const translations = {
     cashOutDesc: 'Crypto vers Mobile Money / Banque',
     addFunds: 'Déposer Fiat',
     addFundsDesc: 'Fiat vers Crypto via STK Push / Banque',
-    airtimeBills: 'Crédit & Factures',
-    airtimeBillsDesc: 'Recharge Mobile et Factures Instantanées',
 
     // Merchant Pay
     merchantType: 'Type de Marchand',
@@ -179,18 +167,10 @@ export const translations = {
     depositViaBank: 'Dépôt par Virement Bancaire',
     bankTransferInfo: 'Transférer sur le compte virtuel indiqué',
 
-    // Airtime & Bills
-    selectTelco: 'Sélectionner l’Opérateur',
-    airtimeType: 'Crédit ou Forfait Internet',
-    selectAmount: 'Sélectionner le Montant',
-    rechargePhone: 'Numéro à Recharger',
-    instantDelivery: 'Recharge instantanée en moins de 10 secondes',
-
     // Slider & Common
     slideToPay: 'Glisser pour Payer',
     slideToCashOut: 'Glisser pour Retirer',
     slideToAddFunds: 'Glisser pour Déposer',
-    slideToRecharge: 'Glisser pour Recharger',
     processing: 'Transaction en cours...',
     approvingNimiq: 'Demande de signature Nimiq Pay...',
     txSuccessful: 'Transaction Réussie !',
@@ -243,8 +223,6 @@ export const translations = {
     cashOutDesc: 'De Cripto a Dinero Móvil / Banco',
     addFunds: 'Añadir Fondos',
     addFundsDesc: 'De Fiat a Cripto vía STK / Banco',
-    airtimeBills: 'Recargas y Servicios',
-    airtimeBillsDesc: 'Datos Móviles y Pago de Facturas',
 
     // Merchant Pay
     merchantType: 'Tipo de Comercio',
@@ -281,18 +259,10 @@ export const translations = {
     depositViaBank: 'Depósito por Transferencia Bancaria',
     bankTransferInfo: 'Transfiere a la cuenta virtual indicada',
 
-    // Airtime & Bills
-    selectTelco: 'Seleccionar Operador',
-    airtimeType: 'Saldo o Paquete de Datos',
-    selectAmount: 'Seleccionar Monto',
-    rechargePhone: 'Teléfono a Recargar',
-    instantDelivery: 'Recarga inmediata en menos de 10 segundos',
-
     // Slider & Common
     slideToPay: 'Deslizar para Pagar',
     slideToCashOut: 'Deslizar para Retirar',
     slideToAddFunds: 'Deslizar para Depositar',
-    slideToRecharge: 'Deslizar para Recargar',
     processing: 'Procesando transacción...',
     approvingNimiq: 'Solicitando confirmación en Nimiq Pay...',
     txSuccessful: '¡Transacción Completada con Éxito!',
@@ -345,8 +315,6 @@ export const translations = {
     cashOutDesc: 'Krypto zu Mobile Money / Bankkonto',
     addFunds: 'Aufladen',
     addFundsDesc: 'Fiat zu Krypto via STK-Push / Bank',
-    airtimeBills: 'Guthaben & Rechnungen',
-    airtimeBillsDesc: 'Sofortige Mobilfunk- und Versorgerzahlungen',
 
     // Merchant Pay
     merchantType: 'Händlertyp',
@@ -383,18 +351,10 @@ export const translations = {
     depositViaBank: 'Einzahlung per Banküberweisung',
     bankTransferInfo: 'Überweisung auf virtuelles Konto',
 
-    // Airtime & Bills
-    selectTelco: 'Mobilfunkanbieter wählen',
-    airtimeType: 'Guthaben oder Datenpaket',
-    selectAmount: 'Betrag wählen',
-    rechargePhone: 'Rufnummer aufladen',
-    instantDelivery: 'Sofortige Aufladung innerhalb von 10 Sekunden',
-
     // Slider & Common
     slideToPay: 'Wischen zum Bezahlen',
     slideToCashOut: 'Wischen zum Auszahlen',
     slideToAddFunds: 'Wischen zum Aufladen',
-    slideToRecharge: 'Wischen zum Aufladen',
     processing: 'Transaktion wird ausgeführt...',
     approvingNimiq: 'Nimiq Pay Autorisierung anfordern...',
     txSuccessful: 'Transaktion erfolgreich abgeschlossen!',
@@ -447,8 +407,6 @@ export const translations = {
     cashOutDesc: 'Cripto para Dinheiro Móvel / Banco',
     addFunds: 'Depositar Fundos',
     addFundsDesc: 'Fiat para Cripto via STK Push / Banco',
-    airtimeBills: 'Recargas & Faturas',
-    airtimeBillsDesc: 'Dados Móveis e Pagamento de Serviços',
 
     // Merchant Pay
     merchantType: 'Tipo de Comerciante',
@@ -485,18 +443,10 @@ export const translations = {
     depositViaBank: 'Depósito por Transferência Bancária',
     bankTransferInfo: 'Transferir para a conta virtual indicada',
 
-    // Airtime & Bills
-    selectTelco: 'Selecionar Operadora',
-    airtimeType: 'Saldo ou Pacote de Dados',
-    selectAmount: 'Selecionar Valor',
-    rechargePhone: 'Telemóvel a Recarregar',
-    instantDelivery: 'Recarga imediata em menos de 10 segundos',
-
     // Slider & Common
     slideToPay: 'Deslize para Pagar',
     slideToCashOut: 'Deslize para Levantar',
     slideToAddFunds: 'Deslize para Depositar',
-    slideToRecharge: 'Deslize para Recarregar',
     processing: 'A processar transação...',
     approvingNimiq: 'A solicitar autorização Nimiq Pay...',
     txSuccessful: 'Transação Concluída com Sucesso!',

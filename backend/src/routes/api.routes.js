@@ -23,6 +23,5 @@ router.post("/confirm-withdrawal-receipt", (req, res) => rampController.confirmW
 router.post("/initiate-deposit", (req, res) => rampController.initiateDeposit(req, res));
 router.post("/mark-deposit-paid", (req, res) => rampController.markDepositPaid(req, res));
 router.post("/cancel-deposit", (req, res) => rampController.cancelDeposit(req, res));
-router.get("/utility-catalog", (req, res) => rampController.getUtilityCatalog(req, res));
 
 module.exports = router;

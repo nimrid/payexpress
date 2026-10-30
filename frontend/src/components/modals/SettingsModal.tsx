@@ -7,6 +7,8 @@ import { Security } from '../../services/security';
 
 interface SettingsModalProps {
   isOpen: boolean;
+  selectedChain?: SupportedChainKey;
+  onSelectChain?: (chainKey: SupportedChainKey) => void;
   onResetBalance: () => void;
   onOpenPinModal: (mode: 'setup' | 'change') => void;
   onClose: () => void;
@@ -14,12 +16,14 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
+  selectedChain,
+  onSelectChain,
   onResetBalance,
   onOpenPinModal,
   onClose,
 }) => {
   const { currentLang, setLanguage, t, isNimiqDetected, supportedLanguages } = useTranslation();
-  const [activeChain, setActiveChain] = useState<SupportedChainKey>(EVM.activeChain);
+  const activeChain = selectedChain || EVM.activeChain;
   const [switchingChain, setSwitchingChain] = useState(false);
 
   // User Profile Credentials
@@ -65,7 +69,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setSwitchingChain(true);
     try {
       await EVM.switchChain(chainKey);
-      setActiveChain(chainKey);
+      if (onSelectChain) {
+        onSelectChain(chainKey);
+      }
     } catch (err) {
       console.error('Chain switch failed:', err);
     } finally {
@@ -143,7 +149,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4, fontWeight: 500 }}>
               {hasPinConfigured
-                ? 'Your 4-digit PIN is stored with SHA-256 encryption. It is required to authorize all payments, offramps, and airtime purchases.'
+                ? 'Your 4-digit PIN is stored with SHA-256 encryption. It is required to authorize all payments and offramps.'
                 : 'Protect your wallet from unauthorized transactions. Set a 4-digit PIN before sending funds.'}
             </p>
 

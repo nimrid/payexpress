@@ -435,43 +435,6 @@ class RampController {
       return res.status(500).json({ success: false, error: err.message });
     }
   }
-
-  getUtilityCatalog(req, res) {
-    const countryCode = (req.query.countryCode || "NG").toUpperCase();
-    const catalog = {
-      NG: {
-        telcos: [
-          { id: "mtn_ng", name: "MTN Nigeria", prefix: "080", bundles: ["1GB Daily (₦500)", "2.5GB 2-Day (₦1,000)", "10GB Monthly (₦4,500)"] },
-          { id: "air_ng", name: "Airtel Nigeria", prefix: "080", bundles: ["1.5GB Daily (₦500)", "5GB Weekly (₦2,000)"] },
-        ],
-        utilities: [
-          { id: "ekedc", name: "EKEDC Prepaid Power Token", identifierLabel: "Meter Number", icon: "zap" },
-          { id: "ikedc", name: "IKEDC Ikeja Electric", identifierLabel: "Meter Number", icon: "zap" },
-        ],
-      },
-      GH: {
-        telcos: [
-          { id: "mtn_gh", name: "MTN Ghana", prefix: "024", bundles: ["1GB Daily (GH₵ 6)", "3GB 3-Day (GH₵ 15)", "10GB Weekly (GH₵ 40)"] },
-          { id: "telecel_gh", name: "Telecel Ghana", prefix: "020", bundles: ["1.5GB Daily (GH₵ 6)", "5GB Weekly (GH₵ 25)"] },
-        ],
-        utilities: [
-          { id: "ecg", name: "ECG Prepaid Electricity", identifierLabel: "Meter Number", icon: "zap" },
-        ],
-      },
-      KE: {
-        telcos: [
-          { id: "saf", name: "Safaricom", prefix: "07", bundles: ["500MB Daily (KES 50)", "1.5GB Daily (KES 100)", "7GB Weekly (KES 500)"] },
-          { id: "air", name: "Airtel Kenya", prefix: "07", bundles: ["1GB Daily (KES 50)", "3GB 2-Day (KES 100)", "10GB Weekly (KES 500)"] },
-        ],
-        utilities: [
-          { id: "kplc", name: "KPLC Prepaid Electricity Token", identifierLabel: "Meter Number", icon: "zap" },
-          { id: "nawasco", name: "Nairobi Water", identifierLabel: "Account Number", icon: "droplet" },
-        ],
-      },
-    };
-
-    return res.json({ success: true, catalog: catalog[countryCode] || catalog.NG });
-  }
 }
 
 module.exports = new RampController();

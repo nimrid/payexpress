@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { Home, Zap, ArrowDownToLine, Smartphone, ShieldAlert } from 'lucide-react';
+import { Home, Zap, ArrowDownToLine, ArrowUpRight, ShieldAlert } from 'lucide-react';
 import { useRamp } from './hooks/useRamp';
 import { Header } from './components/Header';
 import { WalletHero } from './components/WalletHero';
-import { QuickActions } from './components/QuickActions';
 import { RateTicker } from './components/RateTicker';
 import { ActivityFeed } from './components/ActivityFeed';
 import { MerchantPay } from './components/MerchantPay';
 import { AddFunds } from './components/AddFunds';
-import { AirtimeBills } from './components/AirtimeBills';
+import { CashOut } from './components/CashOut';
 import { CorridorRibbon } from './components/CorridorRibbon';
 
 // Modals
@@ -47,12 +46,12 @@ export function App() {
     connectEvm,
     connectNimiq,
     executeSpend,
+    executeCashOut,
     executeDeposit,
-    executeAirtime,
     resetBalance,
   } = useRamp();
 
-  const [currentView, setCurrentView] = useState<'home' | 'pay' | 'deposit' | 'airtime'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'pay' | 'cashout' | 'deposit'>('home');
 
   // Daylight / Night mode state (Default to daylight for outdoor sunlight readability)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -79,7 +78,7 @@ export function App() {
 
   // Security PIN authorization state
   const [pinAuthRequest, setPinAuthRequest] = useState<{
-    type: 'spend' | 'airtime';
+    type: 'spend' | 'cashout';
     payload: any;
     title: string;
     subtitle?: string;
@@ -139,17 +138,17 @@ export function App() {
     setIsPinModalOpen(true);
   };
 
-  const handlePurchaseAirtime = (bundleName: string, price: number) => {
+  const handleCashOutConfirm = (params: { phone: string; cryptoAmount: number; fiatAmount: number }) => {
     // Intercept: Require user's Security PIN authorization
     setPinAuthRequest({
-      type: 'airtime',
-      payload: { bundleName, price },
-      title: 'Authorize Purchase',
-      subtitle: `Enter your Security PIN to purchase ${bundleName} for ${activeCountry.symbol}${price.toLocaleString()}`,
-      amount: price,
+      type: 'cashout',
+      payload: params,
+      title: 'Authorize Cash Out',
+      subtitle: `Enter your Security PIN to withdraw ${activeCountry.symbol}${params.fiatAmount.toLocaleString()} ${activeCountry.currency} to ${params.phone}`,
+      amount: params.fiatAmount,
       currency: activeCountry.currency,
       symbol: activeCountry.symbol,
-      recipientName: bundleName,
+      recipientName: params.phone,
     });
     setPinModalMode(Security.hasPin() ? 'verify' : 'setup');
     setIsPinModalOpen(true);
@@ -168,8 +167,8 @@ export function App() {
       const tx = await executeSpend(request.payload);
       setActiveReceipt(tx);
       setCurrentView('home');
-    } else if (request.type === 'airtime') {
-      const tx = executeAirtime(request.payload.bundleName, request.payload.price);
+    } else if (request.type === 'cashout') {
+      const tx = await executeCashOut(request.payload);
       setActiveReceipt(tx);
       setCurrentView('home');
     }
@@ -312,8 +311,6 @@ export function App() {
               onConnectNimiq={connectNimiq}
             />
 
-            <QuickActions onNavigate={setCurrentView} />
-
             <RateTicker
               countryName={activeCountry.name}
               rate={rate}
@@ -345,6 +342,19 @@ export function App() {
           />
         )}
 
+        {currentView === 'cashout' && (
+          <CashOut
+            country={activeCountry}
+            cryptoAsset={activeCrypto}
+            maxCryptoBalance={maxCryptoBalance}
+            rate={rate}
+            selectedChain={selectedChain}
+            onOpenChainModal={() => setIsChainModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+            onExecuteCashOut={handleCashOutConfirm}
+          />
+        )}
+
         {currentView === 'deposit' && (
           <AddFunds
             country={activeCountry}
@@ -353,15 +363,6 @@ export function App() {
             onOpenChainModal={() => setIsChainModalOpen(true)}
             onBack={() => setCurrentView('home')}
             onRequestDeposit={handleDepositRequest}
-          />
-        )}
-
-        {currentView === 'airtime' && (
-          <AirtimeBills
-            country={activeCountry}
-            cryptoAsset={activeCrypto}
-            onBack={() => setCurrentView('home')}
-            onPurchaseBundle={handlePurchaseAirtime}
           />
         )}
       </div>
@@ -383,18 +384,18 @@ export function App() {
           <span>Pay</span>
         </button>
         <button
+          className={`nav-tab ${currentView === 'cashout' ? 'active' : ''}`}
+          onClick={() => setCurrentView('cashout')}
+        >
+          <ArrowUpRight size={18} />
+          <span>Cash Out</span>
+        </button>
+        <button
           className={`nav-tab ${currentView === 'deposit' ? 'active' : ''}`}
           onClick={() => setCurrentView('deposit')}
         >
           <ArrowDownToLine size={18} />
           <span>Add Funds</span>
-        </button>
-        <button
-          className={`nav-tab ${currentView === 'airtime' ? 'active' : ''}`}
-          onClick={() => setCurrentView('airtime')}
-        >
-          <Smartphone size={18} />
-          <span>Airtime</span>
         </button>
       </nav>
 
@@ -442,6 +443,8 @@ export function App() {
 
       <SettingsModal
         isOpen={isSettingsModalOpen}
+        selectedChain={selectedChain}
+        onSelectChain={setSelectedChain}
         onResetBalance={resetBalance}
         onOpenPinModal={(mode) => {
           setPinAuthRequest(null);

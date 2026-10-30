@@ -73,7 +73,7 @@ export interface Transaction {
   id: string;
   telcoRef: string;
   status: 'COMPLETED' | 'PENDING' | 'FAILED';
-  type: 'spend' | 'cashout' | 'deposit' | 'airtime';
+  type: 'spend' | 'cashout' | 'deposit';
   title: string;
   sub: string;
   recipient: string;

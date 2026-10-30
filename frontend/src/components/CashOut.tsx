@@ -12,7 +12,7 @@ import {
   Building2,
   Info
 } from 'lucide-react';
-import { Country, CryptoAsset, RampQuote, VerifiedRecipient } from '../types';
+import { Country, CryptoAsset, MarketRate, RampQuote, VerifiedRecipient } from '../types';
 import { SlideToPay } from './SlideToPay';
 import { useTranslation } from '../i18n/useTranslation';
 import { SUPPORTED_EVM_CHAINS, SupportedChainKey } from '../services/evm';
@@ -24,7 +24,7 @@ interface CashOutProps {
   country: Country;
   cryptoAsset: CryptoAsset;
   maxCryptoBalance: number;
-  rate: number;
+  rate?: MarketRate | number | null;
   selectedChain?: SupportedChainKey;
   onOpenChainModal?: () => void;
   onBack: () => void;
@@ -42,6 +42,9 @@ export const CashOut: React.FC<CashOutProps> = ({
   onExecuteCashOut,
 }) => {
   const { t } = useTranslation();
+  const effectiveRate = typeof rate === 'number'
+    ? rate
+    : parseFloat(rate?.withdrawalRate || rate?.depositRate || '1400');
   const [payoutType, setPayoutType] = useState<'momo' | 'bank'>('momo');
   const [phone, setPhone] = useState(() => Security.getUserPhone(country.dial));
   const [inputMode, setInputMode] = useState<'fiat' | 'crypto'>('fiat');
@@ -109,7 +112,7 @@ export const CashOut: React.FC<CashOutProps> = ({
       const cryptoNum = parseFloat(cryptoInput) || 0;
       const nimUsdRate = 0.00325;
       const usdVal = cryptoAsset === 'NIM' ? cryptoNum * nimUsdRate : cryptoNum;
-      fiatAmountNum = usdVal * rate;
+      fiatAmountNum = usdVal * effectiveRate;
     }
 
     if (fiatAmountNum <= 0) {
@@ -143,7 +146,7 @@ export const CashOut: React.FC<CashOutProps> = ({
     } finally {
       setIsQuoting(false);
     }
-  }, [fiatInput, cryptoInput, inputMode, country.currency, country.code, cryptoAsset, rate]);
+  }, [fiatInput, cryptoInput, inputMode, country.currency, country.code, cryptoAsset, effectiveRate]);
 
   // Trigger quote when inputs change
   useEffect(() => {
@@ -546,7 +549,7 @@ export const CashOut: React.FC<CashOutProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
           <span>Cashramp P2P Rate</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-secondary)' }}>
-            1 USD = {quote ? quote.exchangeRate.toLocaleString() : rate} {country.currency}
+            1 USD = {quote ? quote.exchangeRate.toLocaleString() : effectiveRate.toLocaleString()} {country.currency}
           </span>
         </div>
 

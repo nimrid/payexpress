@@ -33,11 +33,9 @@ pay express/
         │   ├── Header.tsx               # Native mini-app navigation header
         │   ├── WalletHero.tsx           # Obsidian vault card with 1-tap copyable EVM address
         │   ├── ChainLogo.tsx            # Official vector SVG marks (Polygon, Arbitrum, Base, OP, etc.)
-        │   ├── QuickActions.tsx         # 4 African fintech pillars (Pay, Cash Out, Add Funds, Airtime)
         │   ├── MerchantPay.tsx          # Till, Paybill & Bank transfer with instant settlement
         │   ├── CashOut.tsx              # Automated P2P cash-out to mobile money / bank
         │   ├── AddFunds.tsx             # Telco STK push deposit with preset chips
-        │   ├── AirtimeBills.tsx         # Airtime, data bundles & utility bills
         │   ├── SlideToPay.tsx           # Draggable slider + 1-tap instant confirm fallback
         │   └── modals/
         │       ├── CountryModal.tsx     # 30+ corridor bottom sheet with search & regional tabs
