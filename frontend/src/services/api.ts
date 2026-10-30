@@ -1,9 +1,11 @@
 import { Country, MarketRate, PaymentMethod, RampQuote, Transaction } from '../types';
 
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
 export const API = {
   async getCountries(): Promise<Country[]> {
     try {
-      const res = await fetch('/api/countries');
+      const res = await fetch(`${BASE_URL}/api/countries`);
       const json = await res.json();
       return json.data || [];
     } catch (err) {
@@ -14,7 +16,7 @@ export const API = {
 
   async getRates(countryCode: string): Promise<MarketRate | null> {
     try {
-      const res = await fetch(`/api/rates?countryCode=${countryCode.toUpperCase()}`);
+      const res = await fetch(`${BASE_URL}/api/rates?countryCode=${countryCode.toUpperCase()}`);
       const json = await res.json();
       return json.data || null;
     } catch (err) {
@@ -26,8 +28,8 @@ export const API = {
   async getPaymentMethods(countryCode: string, countryId?: string): Promise<PaymentMethod[]> {
     try {
       const url = countryId 
-        ? `/api/payment-methods?countryId=${countryId}&countryCode=${countryCode}` 
-        : `/api/payment-methods?countryCode=${countryCode}`;
+        ? `${BASE_URL}/api/payment-methods?countryId=${countryId}&countryCode=${countryCode}` 
+        : `${BASE_URL}/api/payment-methods?countryCode=${countryCode}`;
       const res = await fetch(url);
       const json = await res.json();
       return json.methods || [];
@@ -39,7 +41,7 @@ export const API = {
 
   async getBanks(countryCode: string): Promise<{ code: string; name: string }[]> {
     try {
-      const res = await fetch(`/api/banks?countryCode=${countryCode.toUpperCase()}`);
+      const res = await fetch(`${BASE_URL}/api/banks?countryCode=${countryCode.toUpperCase()}`);
       const json = await res.json();
       return json.banks || [];
     } catch (err) {
@@ -61,7 +63,7 @@ export const API = {
     note?: string | null;
   }> {
     try {
-      const res = await fetch('/api/verify-recipient', {
+      const res = await fetch(`${BASE_URL}/api/verify-recipient`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, countryCode, type }),
@@ -82,7 +84,7 @@ export const API = {
     paymentMethodIdentifier?: string;
   }): Promise<{ success: boolean; quote?: RampQuote; error?: string }> {
     try {
-      const res = await fetch('/api/quote', {
+      const res = await fetch(`${BASE_URL}/api/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
@@ -96,7 +98,7 @@ export const API = {
 
   async executeTransaction(payload: Record<string, unknown>): Promise<{ success: boolean; transaction?: Transaction; error?: string }> {
     try {
-      const res = await fetch('/api/execute-transaction', {
+      const res = await fetch(`${BASE_URL}/api/execute-transaction`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -110,7 +112,7 @@ export const API = {
 
   async initiateWithdrawal(payload: Record<string, unknown>): Promise<{ success: boolean; transaction?: Transaction; error?: string }> {
     try {
-      const res = await fetch('/api/initiate-withdrawal', {
+      const res = await fetch(`${BASE_URL}/api/initiate-withdrawal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -124,7 +126,7 @@ export const API = {
 
   async initiateDeposit(payload: Record<string, unknown>): Promise<{ success: boolean; deposit?: any; error?: string }> {
     try {
-      const res = await fetch('/api/initiate-deposit', {
+      const res = await fetch(`${BASE_URL}/api/initiate-deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -138,7 +140,7 @@ export const API = {
 
   async markDepositPaid(paymentRequest: string): Promise<{ success: boolean; result?: boolean; error?: string }> {
     try {
-      const res = await fetch('/api/mark-deposit-paid', {
+      const res = await fetch(`${BASE_URL}/api/mark-deposit-paid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentRequest }),
@@ -152,7 +154,7 @@ export const API = {
 
   async getUtilityCatalog(countryCode: string) {
     try {
-      const res = await fetch(`/api/utility-catalog?countryCode=${countryCode}`);
+      const res = await fetch(`${BASE_URL}/api/utility-catalog?countryCode=${countryCode}`);
       const json = await res.json();
       return json.catalog || null;
     } catch (err) {
