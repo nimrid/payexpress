@@ -1,10 +1,24 @@
 require("dotenv").config();
 
+const rawSecret = (process.env.CASHRAMP_SECRET_KEY || "").trim();
+const rawPublic = (process.env.CASHRAMP_PUBLIC_KEY || "").trim();
+
+const isPub = (k) => typeof k === "string" && k.startsWith("CSHRMP-PUBK_");
+const isSec = (k) => typeof k === "string" && k.startsWith("CSHRMP-SECK_");
+
+// If the user supplied a PUBK into CASHRAMP_SECRET_KEY, treat it as publicKey
+const publicKey = rawPublic || (isPub(rawSecret) ? rawSecret : null) || "CSHRMP-PUBK_HamT0iejk40UYXA6";
+
+// Cashramp GraphQL requires a Secret Key (CSHRMP-SECK_...) for mutations (quotes, customers, deposits, withdrawals).
+// If user sets a SECK, use it; otherwise use the verified sandbox test key.
+const secretKey = isSec(rawSecret) ? rawSecret : (process.env.CASHRAMP_MUTATION_KEY || "CSHRMP-SECK_ArOjcxRdVmfolD6m");
+
 const config = {
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port: parseInt(process.env.PORT, 10) || 5001,
   cashramp: {
     env: process.env.CASHRAMP_ENV || "test",
-    secretKey: process.env.CASHRAMP_SECRET_KEY,
+    publicKey,
+    secretKey,
   },
   nimiq: {
     network: process.env.NIMIQ_NETWORK || "albatross",

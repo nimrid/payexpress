@@ -81,10 +81,10 @@ export const useRamp = () => {
 
   const [rate, setRate] = useState<MarketRate | null>(null);
 
-  // Balances
-  const [nimBalance, setNimBalance] = useState(14850.5);
-  const [usdcBalance, setUsdcBalance] = useState(125.0);
-  const [usdtBalance, setUsdtBalance] = useState(150.0);
+  // Balances (Initialized to 0 until queried from connected wallet)
+  const [nimBalance, setNimBalance] = useState(0);
+  const [usdcBalance, setUsdcBalance] = useState(0);
+  const [usdtBalance, setUsdtBalance] = useState(0);
   const [evmAddress, setEvmAddress] = useState<string | null>(null);
 
   // Nimiq Dual-Chain State
@@ -92,25 +92,31 @@ export const useRamp = () => {
   const [isNimiqConnecting, setIsNimiqConnecting] = useState(true);
   const [isNimiqReady, setIsNimiqReady] = useState(false);
 
-  // Transactions Feed
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 'CXP-829104',
-      telcoRef: 'CR789012X9',
-      status: 'COMPLETED',
-      type: 'spend',
-      title: 'Java House Cafe - Westlands',
-      sub: 'Merchant Till #542890',
-      recipient: '542890',
-      recipientName: 'Java House Cafe',
-      fiatAmount: '1500.00',
-      fiatCurrency: 'KES',
-      cryptoAsset: 'NIM',
-      cryptoAmount: '3590.77',
-      timestamp: new Date().toISOString(),
-      smsConfirmation: 'Cashramp Confirmed: KES 1,500 transferred to Java House Cafe. Ref: CR789012X9.',
-    },
-  ]);
+  // Transactions Feed (persisted in localStorage, clean initial state)
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('payexpress_transactions');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  const recordTransaction = (tx: Transaction) => {
+    setTransactions((prev) => {
+      const updated = [tx, ...prev];
+      try {
+        localStorage.setItem('payexpress_transactions', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
 
   // Load initial countries, EVM account, and Nimiq SDK provider
   useEffect(() => {
@@ -119,7 +125,21 @@ export const useRamp = () => {
     const init = async () => {
       // EVM check
       const addr = await EVM.getAccount();
-      if (isMounted) setEvmAddress(addr);
+      if (isMounted) {
+        setEvmAddress(addr);
+        if (addr) {
+          try {
+            const usdc = await EVM.readTokenBalance('USDC', selectedChain);
+            const usdt = await EVM.readTokenBalance('USDT', selectedChain);
+            if (isMounted) {
+              setUsdcBalance(usdc);
+              setUsdtBalance(usdt);
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
 
       // Nimiq Provider check (Step 4 Tutorial 1)
       try {
@@ -182,8 +202,18 @@ export const useRamp = () => {
 
   const connectEvm = async () => {
     try {
-      const addr = await EVM.connect();
+      const addr = await EVM.connect(selectedChain);
       setEvmAddress(addr);
+      if (addr) {
+        try {
+          const usdc = await EVM.readTokenBalance('USDC', selectedChain);
+          const usdt = await EVM.readTokenBalance('USDT', selectedChain);
+          setUsdcBalance(usdc);
+          setUsdtBalance(usdt);
+        } catch {
+          // ignore
+        }
+      }
       return addr;
     } catch (err) {
       console.warn('EVM connect error:', err);
@@ -313,7 +343,7 @@ export const useRamp = () => {
     else if (activeCrypto === 'USDT') setUsdtBalance((b) => Math.max(0, b - cryptoAmount));
     else setUsdcBalance((b) => Math.max(0, b - cryptoAmount));
 
-    setTransactions((prev) => [tx, ...prev]);
+    recordTransaction(tx);
     return tx;
   };
 
@@ -379,7 +409,7 @@ export const useRamp = () => {
     else if (activeCrypto === 'USDT') setUsdtBalance((b) => Math.max(0, b - params.cryptoAmount));
     else setUsdcBalance((b) => Math.max(0, b - params.cryptoAmount));
 
-    setTransactions((prev) => [tx, ...prev]);
+    recordTransaction(tx);
     return tx;
   };
 
@@ -432,14 +462,20 @@ export const useRamp = () => {
     else if (activeCrypto === 'USDT') setUsdtBalance((b) => b + parseFloat(cryptoCredit));
     else setUsdcBalance((b) => b + parseFloat(cryptoCredit));
 
-    setTransactions((prev) => [tx, ...prev]);
+    recordTransaction(tx);
     return tx;
   };
 
   const resetBalance = () => {
-    setNimBalance(15000);
-    setUsdcBalance(150);
-    setUsdtBalance(150);
+    setNimBalance(0);
+    setUsdcBalance(0);
+    setUsdtBalance(0);
+    setTransactions([]);
+    try {
+      localStorage.removeItem('payexpress_transactions');
+    } catch {
+      // ignore
+    }
   };
 
   return {

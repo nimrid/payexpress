@@ -194,7 +194,7 @@ export const EVM = {
   },
 
   async getAccount(): Promise<string | null> {
-    if (!this.isAvailable()) return '0x71C9F408A6dB61472D437F96839353Eaa4B8a89F';
+    if (!this.isAvailable()) return null;
     try {
       const accounts = await window.ethereum!.request({ method: 'eth_accounts' });
       return accounts && accounts.length > 0 ? accounts[0] : null;
@@ -306,13 +306,13 @@ export const EVM = {
 
   async connect(chainKey?: SupportedChainKey): Promise<string> {
     if (!this.isAvailable()) {
-      return '0x71C9F408A6dB61472D437F96839353Eaa4B8a89F';
+      throw new Error('Ethereum provider not found. Please open inside Nimiq Pay or a Web3 wallet browser.');
     }
 
     const accounts = await this.requestAccounts();
 
     if (!accounts || accounts.length === 0) {
-      throw new Error('No EVM account returned from Nimiq Pay');
+      throw new Error('No EVM account returned from wallet');
     }
 
     await this.switchChain(chainKey || currentActiveChain);
@@ -323,7 +323,7 @@ export const EVM = {
     const targetChainKey = chainKey || currentActiveChain;
     const chain = SUPPORTED_EVM_CHAINS[targetChainKey];
     const tokenConfig = chain.tokens[tokenSymbol];
-    if (!tokenConfig || !this.isAvailable()) return 150.0;
+    if (!tokenConfig || !this.isAvailable()) return 0;
 
     try {
       const userAddress = await this.getAccount();

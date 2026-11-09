@@ -124,98 +124,48 @@ class RampController {
       });
     }
 
-    // Deterministic realistic fallback for African payment rails
-    let autoName = "Verified Recipient";
+    // Formatted fallback for African payment rails
+    let autoName = `Recipient (${cleanId})`;
     let category = "Retail & Services";
     let provider = "M-Pesa Buy Goods";
-    let verifiedBadge = "Registered Merchant";
+    let verifiedBadge = "Registered Account";
     let branch = null;
     let bankName = null;
 
-    const hash = cleanId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-
     if (type === "chipper" || cleanId.startsWith("@")) {
       const chipperTag = cleanId.startsWith("@") ? cleanId : `@${cleanId}`;
-      autoName = `Chipper Verified Merchant (${chipperTag})`;
+      autoName = `Chipper Recipient (${chipperTag})`;
       category = "Digital Commerce";
       provider = "Chipper Cash P2P";
       verifiedBadge = "Verified Chipper Tag";
     } else if (type === "bank") {
-      if (countryCode === "NG") {
-        const nigerianNames = [
-          "Emeka & Sons Ventures",
-          "Adeyemi Oladipo",
-          "Fatima Bello Trading",
-          "Chukwuma Obi Logistics",
-          "Ngozi Eze Enterprise",
-          "Tunde Bakare Store",
-        ];
-        autoName = nigerianNames[hash % nigerianNames.length];
-        category = "Commercial Account";
-        provider = "NUBAN Verified Bank";
-        verifiedBadge = "NIBSS Verified Account";
-        bankName = "Commercial Bank of Nigeria";
-      } else if (countryCode === "GH") {
-        const ghanaNames = [
-          "Kwame & Kofi Trading Enterprise",
-          "Abena Osei Ventures",
-          "Accra Commercial Supplies Ltd",
-          "Osu Retail & Wholesale Hub",
-        ];
-        autoName = ghanaNames[hash % ghanaNames.length];
-        category = "Commercial Bank";
-        provider = "GhIPSS Instant Pay";
-        verifiedBadge = "GhIPSS Verified Corporate";
-        bankName = "Ecobank Ghana";
-      } else if (countryCode === "ZA") {
-        const zaNames = [
-          "Thabo Mbeki Trading Enterprise",
-          "Sipho Ndlovu Supplies",
-          "Cape Coast Logistics",
-          "Jozi Retail Outlets",
-        ];
-        autoName = zaNames[hash % zaNames.length];
-        category = "Commercial Banking";
-        provider = "BankServAfrica / PayShap";
-        verifiedBadge = "PayShap Verified Account";
-        bankName = "Capitec / FNB";
-      } else {
-        autoName = `Commercial Bank Recipient (#${cleanId})`;
-        category = "Commercial Banking";
-        provider = "Direct Bank Transfer";
-        verifiedBadge = "Verified Banking Entity";
-      }
+      autoName = `Bank Account (${cleanId})`;
+      category = "Commercial Banking";
+      provider = countryCode === "NG" ? "NUBAN Bank Transfer" : countryCode === "GH" ? "GhIPSS Instant Pay" : countryCode === "ZA" ? "PayShap Bank Transfer" : "Direct Bank Transfer";
+      verifiedBadge = "Commercial Account";
+      bankName = countryCode === "NG" ? "Commercial Bank of Nigeria" : countryCode === "GH" ? "Commercial Bank of Ghana" : countryCode === "ZA" ? "Commercial Bank of South Africa" : "Commercial Bank";
     } else if (type === "till") {
-      const tillNames = [
-        "Mama Mboga Fresh Groceries",
-        "City Express Chemist & Pharmacy",
-        "Green Valley Hardware & Paint",
-        "Highland Butchery & Grill",
-        "Kilimani Mini Market & Bakery",
-        "Sunrise Auto Spares & Service",
-      ];
-      autoName = `${tillNames[hash % tillNames.length]} (Till #${cleanId})`;
-      category = "General Retail";
+      autoName = `Merchant Till #${cleanId}`;
+      category = "Merchant Retail";
       provider = countryCode === "GH" ? "MTN MoMo Merchant" : "M-Pesa Buy Goods";
       verifiedBadge = "Official Buy Goods Till";
-      branch = "Registered Local Outlet";
     } else if (type === "paybill") {
-      autoName = `Utility & Bill Service #${cleanId}`;
-      category = "Bill Payment";
-      provider = countryCode === "UG" ? "M-PESA Paybill Uganda" : "M-Pesa Paybill";
-      verifiedBadge = "Verified Paybill Service";
+      autoName = `Paybill #${cleanId}`;
+      category = "Commercial Paybill";
+      provider = countryCode === "UG" ? "M-PESA Uganda Paybill" : "M-Pesa Paybill";
+      verifiedBadge = "Official Business Paybill";
     } else if (type === "momo" || type === "mobile_money") {
       const momoProviders = countryCode === "GH" ? "MTN Mobile Money" :
                             countryCode === "UG" ? "MTN MoMo / Airtel" :
                             countryCode === "TZ" ? "Vodacom M-Pesa" :
                             countryCode === "CI" || countryCode === "CM" || countryCode === "SN" ? "Orange / Wave Money" :
                             "Mobile Money Wallet";
-      autoName = `Registered MoMo Merchant (${cleanId})`;
+      autoName = `Mobile Account (${cleanId})`;
       category = "Telco Merchant Wallet";
       provider = momoProviders;
-      verifiedBadge = "KYC Tier 2 Verified Merchant";
+      verifiedBadge = "Verified Mobile Account";
     } else if (type === "wallet") {
-      autoName = `Registered Digital Wallet (${cleanId})`;
+      autoName = `Digital Wallet (${cleanId})`;
       category = "Fintech Wallet";
       provider = countryCode === "ZA" ? "FNB E-Wallet" : countryCode === "NG" ? "OPay / Moniepoint" : "Digital Wallet";
       verifiedBadge = "KYC Level 2 Verified";
@@ -344,29 +294,10 @@ class RampController {
 
       return res.json(withdrawalResult);
     } catch (err) {
-      console.error("[Controller] executeTransaction error, falling back to recorded receipt:", err.message);
-      const txRef = `CXP-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
-      const telcoRef = `CR${Math.floor(100000 + Math.random() * 900000)}X9`;
-
-      return res.json({
-        success: true,
-        transaction: {
-          id: txRef,
-          telcoRef,
-          status: "COMPLETED",
-          type,
-          recipient,
-          recipientName: recipientName || "Recipient",
-          accountNo: accountNo || null,
-          fiatAmount: amount,
-          fiatCurrency: currency,
-          cryptoAsset,
-          cryptoAmount,
-          network: cryptoAsset === "NIM" ? "Nimiq Albatross PoS" : "Polygon PoS",
-          timestamp: new Date().toISOString(),
-          nimiqTxHash: nimiqTxHash || `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
-          smsConfirmation: `Cashramp Confirmed: ${currency} ${Number(amount).toLocaleString()} transferred to ${recipientName || recipient}. Ref: ${telcoRef}.`,
-        },
+      console.error("[Controller] executeTransaction error:", err.message);
+      return res.status(400).json({
+        success: false,
+        error: err.message,
       });
     }
   }

@@ -40,13 +40,6 @@ interface MerchantPayProps {
   }) => void;
 }
 
-interface PresetMerchant {
-  id: string;
-  label: string;
-  acc?: string;
-  bankName?: string;
-}
-
 // Fallback baseline payment methods per country while API loads or for offline resilience
 const getDefaultPaymentMethods = (countryCode: string): PaymentMethod[] => {
   const code = (countryCode || 'KE').toUpperCase();
@@ -367,106 +360,6 @@ export const MerchantPay: React.FC<MerchantPayProps> = ({
 
   const activeRail = getActiveRailCategory();
 
-  // Presets tailored to Country and Active Rail
-  const getPresets = (): PresetMerchant[] => {
-    const code = country.code;
-
-    if (code === 'KE') {
-      if (activeRail === 'till') {
-        return [
-          { id: '890123', label: 'Naivas Supermarket' },
-          { id: '542890', label: 'Java House' },
-          { id: '123456', label: 'TotalEnergies' },
-          { id: '654321', label: 'Quickmart CBD' },
-        ];
-      }
-      if (activeRail === 'paybill') {
-        return [
-          { id: '888880', label: 'KPLC Tokens', acc: '1428571932' },
-          { id: '222111', label: 'Nairobi Water', acc: 'NW-94812' },
-          { id: '522522', label: 'KCB Bank', acc: '110294819' },
-          { id: '329101', label: 'Bolt Driver', acc: 'KBZ-481' },
-        ];
-      }
-      if (activeRail === 'bank') {
-        return [
-          { id: '0123456789', label: 'Equity Bank Kenya', bankName: 'Equity Bank' },
-          { id: '9876543210', label: 'Standard Chartered', bankName: 'Standard Chartered Bank' },
-        ];
-      }
-      return [
-        { id: '0733123456', label: 'Airtel Money Vendor' },
-      ];
-    }
-
-    if (code === 'NG') {
-      if (activeRail === 'chipper') {
-        return [
-          { id: '@adewale_store', label: 'Adewale Store' },
-          { id: '@techmart_ng', label: 'TechMart Hub' },
-        ];
-      }
-      return [
-        { id: '0123456789', label: 'GTBank (Adewale)', bankName: 'Guaranty Trust Bank (GTBank)' },
-        { id: '9876543210', label: 'Access (TechMart Ltd)', bankName: 'Access Bank' },
-        { id: '1102938475', label: 'Moniepoint (Oluwaseun)', bankName: 'Moniepoint Microfinance Bank' },
-        { id: '8031234567', label: 'OPay Agency (Danjuma)', bankName: 'OPay (PayCom)' },
-        { id: '0019283746', label: 'Kuda MFB Merchant', bankName: 'Kuda Microfinance Bank' },
-      ];
-    }
-
-    if (code === 'GH') {
-      if (activeRail === 'bank') {
-        return [
-          { id: '0207890123', label: 'Ecobank Ghana (Kofi)', bankName: 'Ecobank Ghana' },
-          { id: '144100123456', label: 'GCB Bank Limited', bankName: 'GCB Bank Limited' },
-        ];
-      }
-      return [
-        { id: '0244123456', label: 'MTN MoMo (Kwame)' },
-        { id: '0501234567', label: 'Telecel (Abena Provisions)' },
-        { id: '0261122334', label: 'AirtelTigo Merchant' },
-      ];
-    }
-
-    if (code === 'ZA') {
-      if (activeRail === 'wallet') {
-        return [
-          { id: '0821234567', label: 'FNB E-Wallet (Kagiso)' },
-        ];
-      }
-      return [
-        { id: '1234567890', label: 'Capitec PayShap (Thabo)', bankName: 'Capitec Bank' },
-        { id: '62012345678', label: 'FNB Business (Sipho)', bankName: 'First National Bank (FNB)' },
-        { id: '4050607080', label: 'Absa Commercial', bankName: 'Absa Bank' },
-      ];
-    }
-
-    if (code === 'UG') {
-      if (activeRail === 'paybill') {
-        return [
-          { id: '185185', label: 'UMEME Yaka Power', acc: '24681357' },
-          { id: '600100', label: 'NWSC Water Kampala', acc: 'WTR-9182' },
-        ];
-      }
-      if (activeRail === 'bank') {
-        return [
-          { id: '0123456789', label: 'Stanbic Bank Uganda' },
-        ];
-      }
-      return [
-        { id: '0772123456', label: 'MTN MoMo (Kampala Grocers)' },
-        { id: '0752987654', label: 'Shell Bugolobi (Airtel)' },
-      ];
-    }
-
-    // Default regional presets
-    return [
-      { id: '0701234567', label: `${country.name} MoMo Merchant` },
-      { id: '0123456789', label: `${country.name} Commercial Bank` },
-    ];
-  };
-
   // Recipient Verification Lookup (debounced)
   useEffect(() => {
     const cleanId = identifier.trim();
@@ -780,37 +673,6 @@ export const MerchantPay: React.FC<MerchantPayProps> = ({
           }}
         />
 
-        {/* 1-Tap Quick Fill Merchant Presets */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', marginTop: '8px', paddingBottom: '4px' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            Quick Test:
-          </span>
-          {getPresets().map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => {
-                setIdentifier(preset.id);
-                if (preset.acc && activeRail === 'paybill') setAccountNo(preset.acc);
-                if (preset.bankName && activeRail === 'bank') setSelectedBankName(preset.bankName);
-              }}
-              style={{
-                flexShrink: 0,
-                background: identifier === preset.id ? 'var(--color-nimiq-gold-subtle)' : 'var(--bg-surface-elevated)',
-                border: identifier === preset.id ? '1.5px solid var(--color-nimiq-gold)' : '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-full)',
-                padding: '4px 10px',
-                color: identifier === preset.id ? 'var(--color-nimiq-gold-dark)' : 'var(--text-secondary)',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Bank Selector (When Bank Transfer is Active and Banks are available) */}

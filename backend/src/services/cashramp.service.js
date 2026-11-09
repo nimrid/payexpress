@@ -1,151 +1,103 @@
 const client = require("../config/cashramp.config");
-const { ALL_CASHRAMP_COUNTRIES, COUNTRY_METADATA } = require("../data/countries.data");
-const config = require("../config/env.config");
+const { COUNTRY_METADATA } = require("../data/countries.data");
 
-// In-memory cache for customers and quotes to optimize latency
+// In-memory cache for customer IDs to avoid re-creating on every request
 const customerCache = new Map();
 
 class CashrampService {
   /**
-   * Fetch all 25+ Cashramp-supported African countries, merging live sandbox IDs with the full catalog
+   * Fetch all live Cashramp-supported African countries from Cashramp API
    */
   async getCountries() {
-    let apiCountries = [];
-    if (client) {
-      try {
-        const response = await client.getAvailableCountries();
-        if (response && response.success && Array.isArray(response.result)) {
-          apiCountries = response.result;
-        }
-      } catch (err) {
-        console.warn("[Cashramp] getAvailableCountries warning:", err.message);
-      }
+    if (!client) throw new Error("Cashramp client not configured");
+
+    const response = await client.getAvailableCountries();
+    if (!response || !response.success || !Array.isArray(response.result)) {
+      throw new Error(response?.error || "Failed to fetch live available countries from Cashramp");
     }
 
-    const apiCountryMap = new Map();
-    apiCountries.forEach((c) => apiCountryMap.set(c.code.toUpperCase(), c));
-
-    // Return the full 30+ Cashramp country catalog
-    return ALL_CASHRAMP_COUNTRIES.map((c) => {
-      const live = apiCountryMap.get(c.code);
+    return response.result.map((c) => {
+      const code = (c.code || "").toUpperCase();
+      const meta = COUNTRY_METADATA[code] || {};
       return {
-        id: live?.id || c.id,
+        id: c.id,
         name: c.name,
-        code: c.code,
-        currency: c.currency,
-        symbol: c.symbol,
-        flag: c.flag,
-        dial: c.dial,
-        region: c.region,
-        defaultPaymentMethod: c.defaultPaymentMethod,
-        supportedMethods: c.supportedMethods,
-        isLiveSandbox: Boolean(live),
+        code,
+        currency: meta.currency || "USD",
+        symbol: meta.symbol || "$",
+        flag: meta.flag || "🌍",
+        dial: meta.dial || "",
+        region: meta.region || "Africa",
+        defaultPaymentMethod: meta.defaultPaymentMethod || null,
+        supportedMethods: meta.supportedMethods || [],
+        isLiveSandbox: true,
       };
     });
   }
 
   /**
-   * Fetch live deposit and withdrawal market rates for any supported country
+   * Fetch live deposit and withdrawal market rates for any supported country from Cashramp API
    */
   async getMarketRates(countryCode) {
+    if (!client) throw new Error("Cashramp client not configured");
     const code = (countryCode || "NG").toUpperCase();
     const meta = COUNTRY_METADATA[code] || {};
-    let depositRate = meta.indicativeRate?.depositRate || "100.00";
-    let withdrawalRate = meta.indicativeRate?.withdrawalRate || "98.00";
-    let source = "cashramp_indicative";
 
-    if (client) {
-      try {
-        const response = await client.getMarketRate({ countryCode: code });
-        if (response && response.success && response.result) {
-          const dep = parseFloat(response.result.depositRate);
-          const withdr = parseFloat(response.result.withdrawalRate);
-          if (dep > 0 && withdr > 0) {
-            depositRate = response.result.depositRate;
-            withdrawalRate = response.result.withdrawalRate;
-            source = "cashramp_live_api";
-          }
-        }
-      } catch (err) {
-        console.warn(`[Cashramp] Rate query warning for ${code}:`, err.message);
-      }
+    const response = await client.getMarketRate({ countryCode: code });
+    if (!response || !response.success || !response.result) {
+      throw new Error(response?.error || `Failed to fetch live market rate for ${code} from Cashramp`);
     }
 
     return {
       countryCode: code,
-      depositRate,
-      withdrawalRate,
+      depositRate: response.result.depositRate,
+      withdrawalRate: response.result.withdrawalRate,
       currency: meta.currency || "USD",
-      source,
+      source: "cashramp_live_api",
     };
   }
 
   /**
-   * Fetch payment method types for a country
+   * Fetch live payment method types for a country from Cashramp API
    */
   async getPaymentMethods(countryId, countryCode) {
+    if (!client) throw new Error("Cashramp client not configured");
     const code = (countryCode || "NG").toUpperCase();
-    const meta = COUNTRY_METADATA[code] || {};
-    let methods = [];
 
     // Automatically resolve live GraphQL countryId if not provided or non-global
     let targetCountryId = countryId;
     if (!targetCountryId || !targetCountryId.startsWith("VHlwZXM6OkNvdW50cn")) {
-      try {
-        const countries = await this.getCountries();
-        const found = countries.find((c) => c.code === code);
-        if (found && found.id && found.id.startsWith("VHlwZXM6OkNvdW50cn")) {
-          targetCountryId = found.id;
-        }
-      } catch (err) {
-        // fallback
+      const countries = await this.getCountries();
+      const found = countries.find((c) => c.code === code);
+      if (found && found.id) {
+        targetCountryId = found.id;
       }
     }
 
-    // Live Cashramp SDK query
-    if (client && targetCountryId && targetCountryId.startsWith("VHlwZXM6OkNvdW50cn")) {
-      try {
-        const response = await client.getPaymentMethodTypes({ country: targetCountryId });
-        if (response && response.success && Array.isArray(response.result)) {
-          methods = response.result.map((pm) => {
-            const idLower = (pm.identifier || "").toLowerCase();
-            const labelLower = (pm.label || "").toLowerCase();
-            const isBank = idLower.includes("bank") || labelLower.includes("bank") || idLower.includes("absa") || idLower.includes("capitec") || idLower.includes("fnb") || idLower.includes("ecobank");
-            const isWallet = idLower.includes("chipper") || idLower.includes("easypay") || idLower.includes("baridi");
-
-            return {
-              id: pm.id,
-              identifier: pm.identifier,
-              name: pm.label,
-              type: isBank ? "bank_transfer" : isWallet ? "wallet" : "mobile_money",
-              fields: pm.fields,
-              tag: isBank ? "Bank Transfer" : isWallet ? "Digital Wallet" : "Mobile Money",
-            };
-          });
-        }
-      } catch (err) {
-        console.warn(`[Cashramp] Live payment methods query warning for ${code}:`, err.message);
-      }
+    if (!targetCountryId) {
+      throw new Error(`Could not find a valid Cashramp country ID for ${code}`);
     }
 
-    // If no live methods returned (or non-sandbox country), generate from supported methods
-    if (methods.length === 0 && meta.supportedMethods) {
-      methods = meta.supportedMethods.map((name, index) => {
-        const isBank = name.toLowerCase().includes("bank") || name.toLowerCase().includes("eft") || name.toLowerCase().includes("payshap");
-        return {
-          id: `pm_${code.toLowerCase()}_${index}`,
-          identifier: index === 0 && meta.defaultPaymentMethod ? meta.defaultPaymentMethod : `${name.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${code.toLowerCase()}`,
-          name,
-          type: isBank ? "bank_transfer" : "mobile_money",
-          tag: isBank ? "Bank Transfer" : "Mobile Money",
-          fields: [
-            { label: isBank ? "Account Number" : "Mobile Phone Number", identifier: "recipient", required: true },
-          ],
-        };
-      });
+    const response = await client.getPaymentMethodTypes({ country: targetCountryId });
+    if (!response || !response.success || !Array.isArray(response.result)) {
+      throw new Error(response?.error || `Failed to fetch live payment method types for ${code} from Cashramp`);
     }
 
-    return methods;
+    return response.result.map((pm) => {
+      const idLower = (pm.identifier || "").toLowerCase();
+      const labelLower = (pm.label || "").toLowerCase();
+      const isBank = idLower.includes("bank") || labelLower.includes("bank");
+      const isWallet = idLower.includes("chipper") || idLower.includes("wallet");
+
+      return {
+        id: pm.id,
+        identifier: pm.identifier,
+        name: pm.label,
+        type: isBank ? "bank_transfer" : isWallet ? "wallet" : "mobile_money",
+        fields: pm.fields,
+        tag: isBank ? "Bank Transfer" : isWallet ? "Digital Wallet" : "Mobile Money",
+      };
+    });
   }
 
   /**
@@ -154,83 +106,77 @@ class CashrampService {
   async getRampableAssets() {
     if (!client) throw new Error("Cashramp client not configured");
     const response = await client.getRampableAssets();
-    return response?.result || [];
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Failed to fetch rampable assets from Cashramp");
+    }
+    return response.result || [];
   }
 
   /**
-   * Fetch ramp min/max limits
+   * Fetch ramp min/max limits from Cashramp API
    */
   async getRampLimits() {
     if (!client) throw new Error("Cashramp client not configured");
     const response = await client.getRampLimits();
-    return response?.result || {};
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Failed to fetch ramp limits from Cashramp");
+    }
+    return response.result || {};
   }
 
   /**
-   * Ensure customer exists in Cashramp
+   * Create or fetch customer in Cashramp API
    */
-  async getOrCreateCustomer(email, countryId) {
-    const cacheKey = `country_${countryId}`;
+  async getOrCreateCustomer(name, email, countryId) {
+    if (!client) throw new Error("Cashramp client not configured");
+
+    const parts = (name || "Nimiq User").trim().split(/\s+/);
+    const firstName = parts[0] || "Nimiq";
+    const lastName = parts.slice(1).join(" ") || "User";
+    const cacheKey = `customer_${countryId}_${firstName}_${lastName}`.toLowerCase();
+
     if (customerCache.has(cacheKey)) {
       return customerCache.get(cacheKey);
     }
 
-    // Fallback known verified test customer
-    const FALLBACK_CUSTOMER_ID = "VHlwZXM6OkNhc2hyYW1wOjpBUEk6Ok1lcmNoYW50Q3VzdG9tZXItY2ZjYzk4MDUtYzQ4Zi00ZTUyLWE3NWUtNDZkM2Y2NWQ4YTky";
+    const uniqueEmail = email || `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@nimiqpay.africa`;
+    const customerResp = await client.createCustomer({
+      firstName,
+      lastName,
+      email: uniqueEmail,
+      country: countryId,
+    });
 
-    try {
-      const uniqueEmail = `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@nimiqpay.africa`;
-      const customerResp = await client.createCustomer({
-        firstName: "Nimiq",
-        lastName: "PayUser",
-        email: uniqueEmail,
-        country: countryId.startsWith("VHlwZXM6OkNvdW50cn") ? countryId : "VHlwZXM6OkNvdW50cnktOWY5MWE5NGYtNDUxYi00YWEyLWI2NjgtNjQ3YTM2ZDFjZmZh",
-      });
-
-      if (customerResp && customerResp.success && customerResp.result) {
-        customerCache.set(cacheKey, customerResp.result.id);
-        return customerResp.result.id;
-      }
-    } catch (err) {
-      console.warn("[Cashramp] createCustomer error, using fallback:", err.message);
+    if (!customerResp || !customerResp.success || !customerResp.result) {
+      throw new Error(customerResp?.error || "Failed to create customer on Cashramp");
     }
 
-    customerCache.set(cacheKey, FALLBACK_CUSTOMER_ID);
-    return FALLBACK_CUSTOMER_ID;
+    customerCache.set(cacheKey, customerResp.result.id);
+    return customerResp.result.id;
   }
 
   /**
-   * Add a payout payment method for a customer (bank account or mobile money)
+   * Add a payout payment method for a customer (bank account or mobile money) via Cashramp API
    */
   async addPaymentMethod({ customerId, paymentMethodType, fields, ownership = "first_party" }) {
     if (!client) throw new Error("Cashramp client not configured");
 
-    try {
-      const response = await client.addPaymentMethod({
-        customer: customerId,
-        paymentMethodType,
-        fields,
-        ownership,
-      });
-
-      if (response && response.success && response.result) {
-        return response.result;
-      }
-      console.warn("[Cashramp] addPaymentMethod response warning:", response?.error);
-    } catch (err) {
-      console.warn("[Cashramp] addPaymentMethod API error:", err.message);
-    }
-
-    // Fallback payment method ID for resilient testing if API is unreachable
-    return {
-      id: `pm_live_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    const response = await client.addPaymentMethod({
+      customer: customerId,
       paymentMethodType,
       fields,
-    };
+      ownership,
+    });
+
+    if (!response || !response.success || !response.result) {
+      throw new Error(response?.error || "Failed to register payment method on Cashramp");
+    }
+
+    return response.result;
   }
 
   /**
-   * Request live quote for Direct Ramp (deposit or withdrawal/offramp)
+   * Request live quote for Direct Ramp (deposit or withdrawal/offramp) via Cashramp API
    */
   async getQuote({ amount, currency, cryptoAsset, countryCode, paymentMethodType, type = "spend" }) {
     if (!client) throw new Error("Cashramp client not configured");
@@ -242,19 +188,22 @@ class CashrampService {
     // Lookup country
     const countries = await this.getCountries();
     const country = countries.find((c) => c.code === code) || countries[0];
-    const customerId = await this.getOrCreateCustomer(null, country.id);
+    const customerId = await this.getOrCreateCustomer(null, null, country.id);
 
-    // Default payment method for the country
-    const defaultPmType = paymentMethodType || country.defaultPaymentMethod || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
+    // Default payment method for the country from live methods
+    let targetPmType = paymentMethodType;
+    if (!targetPmType) {
+      const livePms = await this.getPaymentMethods(country.id, country.code);
+      targetPmType = livePms[0]?.identifier || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
+    }
 
-    // Fetch baseline rate first for reliable amount calculations
+    // Fetch live market rates
     const rates = await this.getMarketRates(country.code);
-    const unitRate = parseFloat(isSpendOrWithdraw ? rates.withdrawalRate : rates.depositRate) || 1380.0;
+    const unitRate = parseFloat(isSpendOrWithdraw ? rates.withdrawalRate : rates.depositRate);
 
-    // Handle currency input: if caller passes local fiat, amount is fiat; if usd, amount is USD
+    // Calculate USD amount for quote
     const numAmount = parseFloat(amount) || 0;
     const isUsd = currency === "usd" || currency === "USD";
-    const fiatAmount = isUsd ? Number((numAmount * unitRate).toFixed(2)) : numAmount;
     const usdAmount = isUsd ? numAmount : Number((numAmount / unitRate).toFixed(2));
 
     const quoteParams = {
@@ -262,42 +211,17 @@ class CashrampService {
       amount: usdAmount,
       currency: "usd",
       paymentType,
-      paymentMethodType: defaultPmType,
+      paymentMethodType: targetPmType,
       country: country.code,
     };
 
-    try {
-      const response = await client.getRampQuote(quoteParams);
-
-      const computeCryptoCost = (usd, asset) => {
-        const a = (asset || "USDT").toUpperCase();
-        if (a === "NIM") return Number((usd / 0.00325).toFixed(2));
-        if (a === "CELO") return Number((usd / 0.65).toFixed(3));
-        return Number(usd.toFixed(2));
-      };
-
-      if (response && response.success && response.result) {
-        const liveRate = parseFloat(response.result.exchangeRate) || unitRate;
-        const calculatedFiat = isUsd ? Number((numAmount * liveRate).toFixed(2)) : numAmount;
-        const actualCrypto = computeCryptoCost(usdAmount, cryptoAsset);
-
-        return {
-          id: response.result.id,
-          exchangeRate: liveRate,
-          usdAmount,
-          fiatAmount: calculatedFiat,
-          fiatCurrency: country.currency,
-          cryptoAsset: cryptoAsset || "USDT",
-          cryptoAmount: actualCrypto,
-          paymentMethodType: defaultPmType,
-          paymentType,
-          expiresAt: new Date(Date.now() + 45000).toISOString(),
-          source: "cashramp_api",
-        };
-      }
-    } catch (err) {
-      console.warn("[Cashramp] getRampQuote live API warning, utilizing corridor rate:", err.message);
+    const response = await client.getRampQuote(quoteParams);
+    if (!response || !response.success || !response.result) {
+      throw new Error(response?.error || "Failed to fetch live quote from Cashramp");
     }
+
+    const liveRate = parseFloat(response.result.exchangeRate) || unitRate;
+    const calculatedFiat = isUsd ? Number((numAmount * liveRate).toFixed(2)) : numAmount;
 
     const computeCryptoCost = (usd, asset) => {
       const a = (asset || "USDT").toUpperCase();
@@ -307,34 +231,29 @@ class CashrampService {
     };
 
     return {
-      id: `quote_indicative_${Date.now()}`,
-      exchangeRate: unitRate,
+      id: response.result.id,
+      exchangeRate: liveRate,
       usdAmount,
-      fiatAmount,
+      fiatAmount: calculatedFiat,
       fiatCurrency: country.currency,
       cryptoAsset: cryptoAsset || "USDT",
       cryptoAmount: computeCryptoCost(usdAmount, cryptoAsset),
-      paymentMethodType: defaultPmType,
+      paymentMethodType: targetPmType,
       paymentType,
       expiresAt: new Date(Date.now() + 45000).toISOString(),
-      source: "cashramp_indicative",
+      source: "cashramp_live_api",
     };
   }
 
   /**
-   * Alias getRampQuote to getQuote to ensure interface compatibility
+   * Alias getRampQuote to getQuote
    */
   async getRampQuote(params) {
     return this.getQuote(params);
   }
 
   /**
-   * Initiate Offramp / Withdrawal via Cashramp Direct Ramp
-   * Follows SDK lifecycle:
-   * 1. Ensure customer exists
-   * 2. Ensure payment method (bank/MoMo) is registered on Cashramp
-   * 3. Fetch/verify locked withdrawal Ramp Quote
-   * 4. Dispatch initiateRampQuoteWithdrawal to Cashramp P2P rails
+   * Initiate Offramp / Withdrawal via Cashramp Direct Ramp API
    */
   async initiateWithdrawal({
     quoteId,
@@ -357,21 +276,24 @@ class CashrampService {
     const code = countryCode.toUpperCase();
     const countries = await this.getCountries();
     const country = countries.find((c) => c.code === code) || countries[0];
-    const customerId = await this.getOrCreateCustomer(null, country.id);
+    const customerId = await this.getOrCreateCustomer(recipientName, null, country.id);
 
     const ref = reference || `CR_WD_${Date.now().toString().slice(-6)}_${Math.floor(100 + Math.random() * 900)}`;
 
-    // Determine target payment method type
-    const resolvedPmType = paymentMethodType || country.defaultPaymentMethod || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
+    let resolvedPmType = paymentMethodType;
+    if (!resolvedPmType) {
+      const livePms = await this.getPaymentMethods(country.id, country.code);
+      resolvedPmType = livePms[0]?.identifier || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
+    }
 
-    // Ensure payment method is registered in Cashramp
+    // Ensure payment method is registered on Cashramp
     let activePaymentMethodId = paymentMethodId;
     if (!activePaymentMethodId || !activePaymentMethodId.startsWith("VHlwZXM6OkNhc2hyYW1wOjpQMlBQYXltZW50TWV0aG9k")) {
       const pmFields = [];
       if (resolvedPmType.includes("bank") || code === "NG") {
         pmFields.push({ identifier: "bank_account_number", value: String(accountNo || recipient || "0123456789") });
         pmFields.push({ identifier: "name", value: String(recipientName || "Recipient") });
-        pmFields.push({ identifier: "bank_name", value: String(bankName || "Commercial Bank") });
+        pmFields.push({ identifier: "bank_name", value: String(bankName || "Access Bank") });
       } else {
         pmFields.push({ identifier: "phone_number", value: String(recipient || "+234800000000") });
         pmFields.push({ identifier: "name", value: String(recipientName || "Recipient") });
@@ -382,12 +304,11 @@ class CashrampService {
         paymentMethodType: resolvedPmType,
         fields: pmFields,
       });
-      activePaymentMethodId = pmResult?.id;
+      activePaymentMethodId = pmResult.id;
     }
 
-    // Ensure valid withdrawal quote
+    // Ensure valid withdrawal quote from Cashramp
     let activeQuoteId = quoteId;
-    let exchangeRate = 1380.0;
     if (!activeQuoteId || !activeQuoteId.startsWith("VHlwZXM6OkNhc2hyYW1wOjpBUEk6OlJhbXBRdW90ZS")) {
       const freshQuote = await this.getQuote({
         amount,
@@ -398,59 +319,46 @@ class CashrampService {
         type: "withdrawal",
       });
       activeQuoteId = freshQuote.id;
-      exchangeRate = freshQuote.exchangeRate;
     }
 
     // Call Cashramp SDK initiateRampQuoteWithdrawal
-    let withdrawalResponse = null;
-    let liveSuccess = false;
-    if (activeQuoteId.startsWith("VHlwZXM6OkNhc2hyYW1wOjpBUEk6OlJhbXBRdW90ZS") && activePaymentMethodId) {
-      try {
-        withdrawalResponse = await client.initiateRampQuoteWithdrawal({
-          rampQuote: activeQuoteId,
-          paymentMethod: activePaymentMethodId,
-          reference: ref,
-        });
+    const withdrawalResponse = await client.initiateRampQuoteWithdrawal({
+      rampQuote: activeQuoteId,
+      paymentMethod: activePaymentMethodId,
+      reference: ref,
+    });
 
-        if (withdrawalResponse && withdrawalResponse.success && withdrawalResponse.result) {
-          liveSuccess = true;
-        } else {
-          console.warn("[Cashramp] initiateRampQuoteWithdrawal notice:", withdrawalResponse?.error);
-        }
-      } catch (err) {
-        console.warn("[Cashramp] initiateRampQuoteWithdrawal error:", err.message);
-      }
+    if (!withdrawalResponse || !withdrawalResponse.success || !withdrawalResponse.result) {
+      throw new Error(withdrawalResponse?.error || "Failed to initiate withdrawal on Cashramp");
     }
 
-    const liveResult = withdrawalResponse?.result;
-    const finalStatus = liveSuccess ? (liveResult.status || "PROCESSING") : "COMPLETED";
-    const telcoRef = liveResult?.agent || `CR${Math.floor(100000 + Math.random() * 900000)}X9`;
+    const liveResult = withdrawalResponse.result;
 
     return {
       success: true,
       transaction: {
-        id: liveResult?.id || ref,
-        cashrampRequestId: liveResult?.id || null,
-        telcoRef,
-        status: finalStatus,
+        id: liveResult.id,
+        cashrampRequestId: liveResult.id,
+        status: liveResult.status || "PROCESSING",
         type: "cashout",
         title: "Cash Out to Mobile Money / Bank",
         recipient: recipient || accountNo,
         recipientName: recipientName || "Recipient",
         accountNo: accountNo || null,
         bankName: bankName || null,
-        fiatAmount: Number(amount),
+        fiatAmount: Number(liveResult.amountLocal || amount),
         fiatCurrency: currency || country.currency,
         cryptoAsset: cryptoAsset || "USDT",
-        cryptoAmount: cryptoAmount || (Number(amount) / exchangeRate).toFixed(2),
-        exchangeRate: liveResult?.exchangeRate || exchangeRate,
+        cryptoAmount: liveResult.amountUsd || cryptoAmount || (Number(amount) / parseFloat(liveResult.exchangeRate)).toFixed(2),
+        exchangeRate: liveResult.exchangeRate,
+        agent: liveResult.agent,
+        paymentDetails: liveResult.paymentDetails,
         network: cryptoAsset === "NIM" ? "Nimiq Albatross PoS" : "Polygon PoS",
         timestamp: new Date().toISOString(),
         nimiqTxHash: nimiqTxHash || null,
         paymentMethodId: activePaymentMethodId,
         paymentMethodType: resolvedPmType,
-        smsConfirmation: `Cashramp Confirmed: ${currency || country.currency} ${Number(amount).toLocaleString()} transferred to ${recipientName || recipient}. Ref: ${telcoRef}.`,
-        source: liveSuccess ? "cashramp_direct_ramp" : "cashramp_settlement_escrow",
+        source: "cashramp_direct_ramp",
       },
     };
   }
@@ -460,13 +368,11 @@ class CashrampService {
    */
   async markWithdrawalReceived({ paymentRequest }) {
     if (!client) throw new Error("Cashramp client not configured");
-    try {
-      const response = await client.markWithdrawalAsReceived({ paymentRequest });
-      return response;
-    } catch (err) {
-      console.warn("[Cashramp] markWithdrawalAsReceived error:", err.message);
-      return { success: false, error: err.message };
+    const response = await client.markWithdrawalAsReceived({ paymentRequest });
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Failed to mark withdrawal as received on Cashramp");
     }
+    return response;
   }
 
   /**
@@ -523,25 +429,27 @@ class CashrampService {
     const code = (countryCode || "NG").toUpperCase();
     const countries = await this.getCountries();
     const country = countries.find((c) => c.code === code) || countries[0];
-    const customerId = await this.getOrCreateCustomer(null, country.id);
 
     const ref = reference || `CR_DEP_${Date.now().toString().slice(-6)}_${Math.floor(100 + Math.random() * 900)}`;
-    const resolvedPmType = paymentMethodType || country.defaultPaymentMethod || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
+
+    let targetPmType = paymentMethodType;
+    if (!targetPmType) {
+      const livePms = await this.getPaymentMethods(country.id, country.code);
+      targetPmType = livePms[0]?.identifier || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
+    }
 
     // Ensure valid deposit quote
     let activeQuoteId = quoteId;
-    let exchangeRate = 1408.0;
     if (!activeQuoteId || !activeQuoteId.startsWith("VHlwZXM6OkNhc2hyYW1wOjpBUEk6OlJhbXBRdW90ZS")) {
       const freshQuote = await this.getQuote({
         amount: amount || 10,
         currency: currency || "local_currency",
         cryptoAsset,
         countryCode: code,
-        paymentMethodType: resolvedPmType,
+        paymentMethodType: targetPmType,
         type: "deposit",
       });
       activeQuoteId = freshQuote.id;
-      exchangeRate = freshQuote.exchangeRate;
     }
 
     const params = {
@@ -564,57 +472,28 @@ class CashrampService {
       };
     }
 
-    const isBank = resolvedPmType.includes("bank") || Boolean(bankAccountNumber);
-    const isWallet = resolvedPmType.includes("chipper") || resolvedPmType.includes("wallet") || resolvedPmType === "easypay";
-    const defaultDetails = isBank
-      ? `Transfer from bank account ${bankAccountNumber || "verified account"}. Authorize PIN to complete deposit.`
-      : isWallet
-      ? `Digital wallet authorization for ${phoneNumber || "account"}. Authorize PIN to complete.`
-      : `Prompt sent to ${phoneNumber || "mobile phone"}. Authorize PIN to complete.`;
-
-    try {
-      const response = await client.initiateRampQuoteDeposit(params);
-      if (response && response.success && response.result) {
-        return {
-          success: true,
-          deposit: {
-            id: response.result.id,
-            paymentRequestId: response.result.id,
-            reference: ref,
-            status: response.result.status || "pending",
-            agent: response.result.agent || "Cashramp P2P Liquidity Agent",
-            paymentDetails: response.result.paymentDetails || defaultDetails,
-            paymentMethodType: resolvedPmType,
-            exchangeRate: response.result.exchangeRate || exchangeRate,
-            amountLocal: response.result.amountLocal || amount,
-            amountUsd: response.result.amountUsd || (Number(amount) / exchangeRate).toFixed(2),
-            expiresAt: response.result.expiresAt || new Date(Date.now() + 15 * 60000).toISOString(),
-            onchainTransferInfo: params.onchainTransferInfo || null,
-            source: "cashramp_direct_ramp",
-          },
-        };
-      }
-      console.warn("[Cashramp] initiateRampQuoteDeposit live API notice:", response?.error);
-    } catch (err) {
-      console.warn("[Cashramp] initiateRampQuoteDeposit error:", err.message);
+    const response = await client.initiateRampQuoteDeposit(params);
+    if (!response || !response.success || !response.result) {
+      throw new Error(response?.error || "Failed to initiate deposit on Cashramp");
     }
 
+    const res = response.result;
     return {
       success: true,
       deposit: {
-        id: `CR_DEP_${Date.now()}`,
-        paymentRequestId: `CR_DEP_${Date.now()}`,
+        id: res.id,
+        paymentRequestId: res.id,
         reference: ref,
-        status: "pending",
-        agent: "Cashramp P2P Liquidity Agent",
-        paymentDetails: defaultDetails,
-        paymentMethodType: resolvedPmType,
-        exchangeRate,
-        amountLocal: amount,
-        amountUsd: (Number(amount) / exchangeRate).toFixed(2),
-        expiresAt: new Date(Date.now() + 15 * 60000).toISOString(),
+        status: res.status,
+        agent: res.agent,
+        paymentDetails: res.paymentDetails,
+        paymentMethodType: targetPmType,
+        exchangeRate: res.exchangeRate,
+        amountLocal: res.amountLocal,
+        amountUsd: res.amountUsd,
+        expiresAt: res.expiresAt,
         onchainTransferInfo: params.onchainTransferInfo || null,
-        source: "cashramp_direct_ramp_simulated",
+        source: "cashramp_direct_ramp",
       },
     };
   }
@@ -624,16 +503,14 @@ class CashrampService {
    */
   async markDepositPaid({ paymentRequest, receipt }) {
     if (!client) throw new Error("Cashramp client not configured");
-    try {
-      const response = await client.markDepositAsPaid({
-        paymentRequest,
-        receipt: receipt || "payment_confirmed_via_app",
-      });
-      return response;
-    } catch (err) {
-      console.warn("[Cashramp] markDepositAsPaid error:", err.message);
-      return { success: false, error: err.message };
+    const response = await client.markDepositAsPaid({
+      paymentRequest,
+      receipt: receipt || "payment_confirmed_via_app",
+    });
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Failed to mark deposit as paid on Cashramp");
     }
+    return response;
   }
 
   /**
@@ -641,13 +518,11 @@ class CashrampService {
    */
   async cancelDeposit({ paymentRequest }) {
     if (!client) throw new Error("Cashramp client not configured");
-    try {
-      const response = await client.cancelDeposit({ paymentRequest });
-      return response;
-    } catch (err) {
-      console.warn("[Cashramp] cancelDeposit error:", err.message);
-      return { success: false, error: err.message };
+    const response = await client.cancelDeposit({ paymentRequest });
+    if (!response || !response.success) {
+      throw new Error(response?.error || "Failed to cancel deposit on Cashramp");
     }
+    return response;
   }
 }
 

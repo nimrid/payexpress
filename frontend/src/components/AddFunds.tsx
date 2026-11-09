@@ -214,7 +214,7 @@ export const AddFunds: React.FC<AddFundsProps> = ({
 
   // Form input fields
   const [phone, setPhone] = useState(() => Security.getUserPhone(country.dial));
-  const [accountNumber, setAccountNumber] = useState('0123456789');
+  const [accountNumber, setAccountNumber] = useState('');
   const [bankName, setBankName] = useState(() => {
     const banks = POPULAR_BANKS[country.code] || [];
     return banks[0] || 'Commercial Bank';

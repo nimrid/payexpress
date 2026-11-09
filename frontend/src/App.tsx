@@ -9,6 +9,7 @@ import { MerchantPay } from './components/MerchantPay';
 import { AddFunds } from './components/AddFunds';
 import { CashOut } from './components/CashOut';
 import { CorridorRibbon } from './components/CorridorRibbon';
+import { LandingPage } from './components/LandingPage';
 
 // Modals
 import { CountryModal } from './components/modals/CountryModal';
@@ -52,6 +53,27 @@ export function App() {
   } = useRamp();
 
   const [currentView, setCurrentView] = useState<'home' | 'pay' | 'cashout' | 'deposit'>('home');
+
+  // View mode: 'landing' (marketing & education page) vs 'app' (mini-app interface)
+  const [viewMode, setViewMode] = useState<'landing' | 'app'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'app' || window.location.hash === '#app' || Boolean((window as any).nimiqPay)) {
+        return 'app';
+      }
+    }
+    return 'landing';
+  });
+
+  const handleLaunchApp = (targetView?: 'home' | 'pay' | 'cashout' | 'deposit') => {
+    if (targetView) {
+      setCurrentView(targetView);
+    }
+    setViewMode('app');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Daylight / Night mode state (Default to daylight for outdoor sunlight readability)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -229,17 +251,33 @@ export function App() {
     setCurrentView('home');
   };
 
+  if (viewMode === 'landing') {
+    return (
+      <LandingPage
+        countries={countries}
+        activeCountry={activeCountry}
+        onSelectCountry={changeCountry}
+        onLaunchApp={handleLaunchApp}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
+  }
+
   return (
     <main className={`app-frame theme-${theme}`}>
       {/* Header */}
       <Header
         evmAddress={evmAddress}
         selectedChain={selectedChain}
+        activeCountry={activeCountry}
         theme={theme}
         onToggleTheme={toggleTheme}
         onConnectEvm={connectEvm}
         onOpenChainModal={() => setIsChainModalOpen(true)}
+        onOpenCountryModal={() => setIsCountryModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenLanding={() => setViewMode('landing')}
       />
 
       {/* Main View Area */}

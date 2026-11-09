@@ -48,8 +48,8 @@ export const CashOut: React.FC<CashOutProps> = ({
   const [payoutType, setPayoutType] = useState<'momo' | 'bank'>('momo');
   const [phone, setPhone] = useState(() => Security.getUserPhone(country.dial));
   const [inputMode, setInputMode] = useState<'fiat' | 'crypto'>('fiat');
-  const [fiatInput, setFiatInput] = useState('2000');
-  const [cryptoInput, setCryptoInput] = useState('15');
+  const [fiatInput, setFiatInput] = useState('');
+  const [cryptoInput, setCryptoInput] = useState('');
 
   // Recipient Verification
   const [verifiedRecipient, setVerifiedRecipient] = useState<VerifiedRecipient | null>(null);

@@ -16,6 +16,7 @@ interface HeaderProps {
   onOpenChainModal: () => void;
   onOpenCountryModal?: () => void;
   onOpenSettings: () => void;
+  onOpenLanding?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChainModal,
   onOpenCountryModal,
   onOpenSettings,
+  onOpenLanding,
 }) => {
   const { currentLang, supportedLanguages, t } = useTranslation();
   const currentLangInfo = supportedLanguages.find((l) => l.code === currentLang);
@@ -33,7 +35,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="app-header">
-      <div className="brand-badge">
+      <div 
+        className="brand-badge" 
+        onClick={onOpenLanding} 
+        style={{ cursor: onOpenLanding ? 'pointer' : 'default' }}
+        title={onOpenLanding ? 'Back to Landing Page' : 'PayExpress'}
+      >
         {/* Nimiq Gold Sun Hexagon + Lightning Payment Mark */}
         <div className="brand-logo" aria-label="PayExpress Logo">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
