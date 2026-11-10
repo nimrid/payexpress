@@ -309,7 +309,7 @@ class RampController {
         bankAccountNumber,
         amount,
         currency,
-        cryptoAsset = "USDC",
+        cryptoAsset = "USDT",
         network = "matic",
         userWalletAddress,
         countryCode = "NG",

@@ -31,7 +31,7 @@ interface LandingPageProps {
   countries: Country[];
   activeCountry: Country;
   onSelectCountry: (country: Country) => void;
-  onLaunchApp: (initialView?: 'home' | 'pay' | 'cashout' | 'deposit') => void;
+  onLaunchApp: (initialView?: 'home' | 'cashout' | 'deposit') => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
@@ -178,11 +178,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               <h1 className="hero-title">
-                Pay Local Merchants & Cash Out to Mobile Money <span className="hero-title-accent">Instantly</span>
+                African Crypto On & Off-Ramp <span className="hero-title-accent">Instantly</span>
               </h1>
 
               <p className="hero-subtitle">
-                Spend <strong>Nimiq (NIM)</strong> and <strong>EVM Stablecoins (USDC, USDT)</strong> directly at everyday M-Pesa Tills, Paybills, Chipper Cash, and Bank Accounts across Africa. Non-custodial, real-time FX rates, and sub-60 second settlement.
+                Deposit fiat and cash out crypto (<strong>NIM</strong> & <strong>USDT</strong>) directly with Mobile Money and Bank Accounts across Africa. Non-custodial, real-time FX rates, and sub-60 second settlement.
               </p>
 
               <div className="hero-cta-group">
@@ -218,8 +218,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span>M-Pesa & Bank Rails</span>
                 </div>
                 <div className="hero-trust-item">
-                  <KeyRound size={16} className="hero-trust-icon" />
-                  <span>PIN Protected</span>
+                  <ShieldCheck size={16} className="hero-trust-icon" />
+                  <span>Nimiq Pay Native</span>
                 </div>
               </div>
             </div>
@@ -234,7 +234,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       onClick={() => setCalcMode('cashout')}
                     >
                       <ArrowUpRight size={14} />
-                      <span>Spend / Cash Out</span>
+                      <span>Cash Out</span>
                     </button>
                     <button
                       className={`calc-tab-btn ${calcMode === 'deposit' ? 'active' : ''}`}
@@ -268,7 +268,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {/* Input Box */}
                   <div className="calc-input-box">
                     <div className="calc-label-row">
-                      <span>{calcMode === 'cashout' ? 'You Spend' : 'You Deposit'}</span>
+                      <span>{calcMode === 'cashout' ? 'You Cash Out' : 'You Deposit'}</span>
                       <span>Asset: {calcMode === 'cashout' ? selectedAsset : currentCalcCountry.currency}</span>
                     </div>
                     <div className="calc-value-row">
@@ -287,7 +287,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                           className="calc-select-pill"
                         >
                           <option value="NIM">NIM</option>
-                          <option value="USDC">USDC</option>
                           <option value="USDT">USDT</option>
                         </select>
                       ) : (
@@ -370,25 +369,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="landing-container">
           <div className="section-header">
             <span className="section-tag">Powerful Capabilities</span>
-            <h2 className="section-title">Built for Everyday African Commerce</h2>
+            <h2 className="section-title">Built for Everyday African Liquidity</h2>
             <p className="section-desc">
-              Whether paying for groceries at a neighborhood shop, paying utility bills, or converting crypto to cash, Pay Express bridges Web3 to real-world rails seamlessly.
+              Whether depositing fiat or converting crypto to cash via mobile money or bank accounts, Pay Express bridges Web3 to real-world rails seamlessly.
             </p>
           </div>
 
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon-wrap" style={{ background: 'var(--color-nimiq-gold-subtle)', color: 'var(--color-nimiq-gold-dark)' }}>
-                <Store size={26} />
+                <Zap size={26} />
               </div>
-              <h3 className="feature-title">Pay Merchant Tills & Paybills</h3>
+              <h3 className="feature-title">Cashramp Liquidity Engine</h3>
               <p className="feature-text">
-                Pay M-Pesa Buy Goods tills, merchant stores, restaurants, fuel stations, and utilities directly from your crypto wallet without needing to cash out first.
+                Direct integration with the official Cashramp SDK, offering live market FX rates and instant settlement across 28+ African countries.
               </p>
               <div className="feature-tag-list">
-                <span className="feature-tag-pill">M-Pesa Buy Goods</span>
-                <span className="feature-tag-pill">Safaricom Paybill</span>
-                <span className="feature-tag-pill">Chipper Cash</span>
+                <span className="feature-tag-pill">Real-time Rates</span>
+                <span className="feature-tag-pill">Instant Escrow</span>
+                <span className="feature-tag-pill">28+ Countries</span>
               </div>
             </div>
 
@@ -398,7 +397,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
               <h3 className="feature-title">Instant Mobile Money Cash Out</h3>
               <p className="feature-text">
-                Withdraw your NIM, USDC, or USDT directly into your local mobile money wallet (M-Pesa, MTN MoMo, Airtel Money, Telecel) or commercial bank account in under 60 seconds.
+                Withdraw your NIM or USDT directly into your local mobile money wallet (M-Pesa, MTN MoMo, Airtel Money, Telecel) or commercial bank account in under 60 seconds.
               </p>
               <div className="feature-tag-list">
                 <span className="feature-tag-pill">Instant Off-Ramp</span>
@@ -455,16 +454,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="feature-card">
               <div className="feature-icon-wrap" style={{ background: 'var(--color-nimiq-gold-subtle)', color: 'var(--color-nimiq-gold-dark)' }}>
-                <KeyRound size={26} />
+                <ShieldCheck size={26} />
               </div>
-              <h3 className="feature-title">Encrypted Security PIN</h3>
+              <h3 className="feature-title">Nimiq Pay Native Security</h3>
               <p className="feature-text">
-                Set up a 6-digit client-side encrypted PIN to authorize every spend or cash out. Prevents accidental payments and safeguards your wallet.
+                Protected by Nimiq Pay's native wallet cryptography and biometric authorization. Zero separate passwords or PINs required.
               </p>
               <div className="feature-tag-list">
-                <span className="feature-tag-pill">On-Device Encrypted</span>
-                <span className="feature-tag-pill">Biometric/PIN</span>
-                <span className="feature-tag-pill">Fraud Prevention</span>
+                <span className="feature-tag-pill">Host Wallet Enforced</span>
+                <span className="feature-tag-pill">Biometrics Native</span>
+                <span className="feature-tag-pill">Hardware-Backed</span>
               </div>
             </div>
           </div>
@@ -493,9 +492,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="step-card">
               <div className="step-num-badge">2</div>
-              <h3 className="step-title">Choose Payment Rail</h3>
+              <h3 className="step-title">Choose Add Funds or Cash Out</h3>
               <p className="step-desc">
-                Select your country and action: enter a Merchant Till number, Safaricom Paybill, Bank Account number, or Mobile Money phone.
+                Select your African country and preferred payment rail: Mobile Money (M-Pesa, MTN MoMo, Airtel) or Bank Account.
               </p>
             </div>
 
@@ -503,7 +502,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="step-num-badge">3</div>
               <h3 className="step-title">Authorize & Settle Instantly</h3>
               <p className="step-desc">
-                Confirm the live exchange rate and slide to pay with your Security PIN. Fiat clears to the merchant or mobile wallet in under 60 seconds!
+                Confirm the live exchange rate and authorize natively in Nimiq Pay. Funds clear to your mobile wallet or crypto balance in under 60 seconds!
               </p>
             </div>
           </div>
@@ -605,9 +604,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="security-point">
                 <CheckCircle2 size={20} className="security-point-icon" />
                 <div>
-                  <div className="security-point-title">Encrypted 6-Digit PIN</div>
+                  <div className="security-point-title">Nimiq Pay Native Wallet Security</div>
                   <p className="security-point-desc">
-                    Your security PIN is hashed and verified locally on your device with high-entropy salt before sending funds.
+                    Transactions are cryptographically signed and authorized directly within your Nimiq Pay host wallet.
                   </p>
                 </div>
               </div>
@@ -637,16 +636,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="faq-list">
             {[
               {
-                q: 'How fast does a merchant payment or mobile money cash out take?',
-                a: 'Merchant till payments and mobile money cashouts (M-Pesa, MTN MoMo, Airtel) are typically completed in under 45 to 60 seconds. Direct commercial bank transfers typically clear within 1 to 3 minutes depending on the banking network.',
+                q: 'How fast does an off-ramp (cash out) or deposit take?',
+                a: 'Mobile money cashouts (M-Pesa, MTN MoMo, Airtel) and bank deposits are typically completed in under 45 to 60 seconds. Direct commercial bank transfers typically clear within 1 to 3 minutes depending on the banking network.',
               },
               {
-                q: 'Which cryptocurrencies can I spend and cash out?',
-                a: 'Pay Express natively supports Nimiq (NIM) for fast, low-cost micropayments, as well as EVM stablecoins (USDC and USDT) across Polygon, Base, Arbitrum, Ethereum, and Celo.',
+                q: 'Which cryptocurrencies can I deposit and cash out?',
+                a: 'Pay Express natively supports Nimiq (NIM) for fast, low-cost transfers, as well as EVM stablecoin Tether (USDT) across Polygon, Base, Arbitrum, Ethereum, and Celo.',
               },
               {
-                q: 'Can I pay an M-Pesa Buy Goods till or Paybill if the merchant does not know crypto?',
-                a: 'Yes! That is the core superpower of Pay Express. The merchant does not need to know anything about Web3 or crypto. You spend crypto from your wallet, and the merchant receives standard fiat local currency (e.g. KES) with official telco SMS confirmation directly on their till or paybill.',
+                q: 'How do Add Funds and Cash Out work with Cashramp?',
+                a: 'Add Funds allows you to deposit local fiat currency via mobile money or bank transfer and receive crypto directly into your wallet. Cash Out allows you to withdraw crypto and receive local fiat payout directly into your mobile money wallet or bank account in under 60 seconds.',
               },
               {
                 q: 'Is Pay Express custodial? Do you hold my funds?',
@@ -676,9 +675,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="landing-section" style={{ paddingBlockEnd: '30px' }}>
         <div className="landing-container">
           <div className="cta-banner">
-            <h2 className="cta-banner-title">Start Paying with Crypto Across Africa Today</h2>
+            <h2 className="cta-banner-title">Start Converting Crypto Across Africa Today</h2>
             <p className="cta-banner-desc">
-              Experience the future of borderless merchant payments and instant mobile money ramps. Non-custodial, lightning fast, and always fair.
+              Experience the future of borderless African crypto liquidity and instant mobile money ramps. Non-custodial, lightning fast, and always fair.
             </p>
             <button
               className="btn-hero-primary"
@@ -704,9 +703,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <div className="footer-links">
-              <button className="footer-link" onClick={() => onLaunchApp('pay')} style={{ background: 'none', border: 'none', padding: 0 }}>Pay Merchants</button>
-              <button className="footer-link" onClick={() => onLaunchApp('cashout')} style={{ background: 'none', border: 'none', padding: 0 }}>Cash Out</button>
               <button className="footer-link" onClick={() => onLaunchApp('deposit')} style={{ background: 'none', border: 'none', padding: 0 }}>Add Funds</button>
+              <button className="footer-link" onClick={() => onLaunchApp('cashout')} style={{ background: 'none', border: 'none', padding: 0 }}>Cash Out</button>
               <button className="footer-link" onClick={() => scrollToSection('faq')} style={{ background: 'none', border: 'none', padding: 0 }}>FAQ</button>
             </div>
 

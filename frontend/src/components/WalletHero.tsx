@@ -9,7 +9,6 @@ interface WalletHeroProps {
   country: Country;
   cryptoAsset: CryptoAsset;
   nimBalance: number;
-  usdcBalance: number;
   usdtBalance: number;
   fiatValue: string;
   evmAddress?: string | null;
@@ -23,7 +22,6 @@ export const WalletHero: React.FC<WalletHeroProps> = ({
   country,
   cryptoAsset,
   nimBalance,
-  usdcBalance,
   usdtBalance,
   fiatValue,
   evmAddress,
@@ -39,8 +37,7 @@ export const WalletHero: React.FC<WalletHeroProps> = ({
 
   const getDisplayBalance = () => {
     if (cryptoAsset === 'NIM') return nimBalance.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    if (cryptoAsset === 'USDT') return usdtBalance.toFixed(2);
-    return usdcBalance.toFixed(2);
+    return usdtBalance.toFixed(2);
   };
 
   const handleCopy = () => {
@@ -80,7 +77,7 @@ export const WalletHero: React.FC<WalletHeroProps> = ({
           <ChevronDown size={13} color="var(--text-muted)" />
         </button>
 
-        {/* NIM / USDC / USDT Native Segmented Control */}
+        {/* NIM / USDT Native Segmented Control */}
         <div style={{
           display: 'inline-flex',
           background: 'var(--bg-pill)',
@@ -88,7 +85,7 @@ export const WalletHero: React.FC<WalletHeroProps> = ({
           borderRadius: 'var(--radius-full)',
           border: '1.5px solid var(--border-subtle)',
         }}>
-          {(['NIM', 'USDC', 'USDT'] as CryptoAsset[]).map((asset) => {
+          {(['NIM', 'USDT'] as CryptoAsset[]).map((asset) => {
             const isSelected = cryptoAsset === asset;
             return (
               <button

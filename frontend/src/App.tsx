@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Home, Zap, ArrowDownToLine, ArrowUpRight, ShieldAlert } from 'lucide-react';
+import { Home, ArrowDownToLine, ArrowUpRight } from 'lucide-react';
 import { useRamp } from './hooks/useRamp';
 import { Header } from './components/Header';
 import { WalletHero } from './components/WalletHero';
 import { RateTicker } from './components/RateTicker';
 import { ActivityFeed } from './components/ActivityFeed';
-import { MerchantPay } from './components/MerchantPay';
 import { AddFunds } from './components/AddFunds';
 import { CashOut } from './components/CashOut';
 import { CorridorRibbon } from './components/CorridorRibbon';
@@ -17,10 +16,8 @@ import { ChainModal } from './components/modals/ChainModal';
 import { ReceiptModal } from './components/modals/ReceiptModal';
 import { StkPushModal } from './components/modals/StkPushModal';
 import { SettingsModal } from './components/modals/SettingsModal';
-import { PinAuthModal } from './components/modals/PinAuthModal';
 import { Transaction } from './types';
 import { API } from './services/api';
-import { Security } from './services/security';
 
 import './styles/app.css';
 
@@ -33,7 +30,6 @@ export function App() {
     setSelectedChain,
     rate,
     nimBalance,
-    usdcBalance,
     usdtBalance,
     evmAddress,
     nimiqAddress,
@@ -46,13 +42,12 @@ export function App() {
     setActiveCrypto,
     connectEvm,
     connectNimiq,
-    executeSpend,
     executeCashOut,
     executeDeposit,
     resetBalance,
   } = useRamp();
 
-  const [currentView, setCurrentView] = useState<'home' | 'pay' | 'cashout' | 'deposit'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'cashout' | 'deposit'>('home');
 
   // View mode: 'landing' (marketing & education page) vs 'app' (mini-app interface)
   const [viewMode, setViewMode] = useState<'landing' | 'app'>(() => {
@@ -65,7 +60,7 @@ export function App() {
     return 'landing';
   });
 
-  const handleLaunchApp = (targetView?: 'home' | 'pay' | 'cashout' | 'deposit') => {
+  const handleLaunchApp = (targetView?: 'home' | 'cashout' | 'deposit') => {
     if (targetView) {
       setCurrentView(targetView);
     }
@@ -98,31 +93,6 @@ export function App() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState<Transaction | null>(null);
 
-  // Security PIN authorization state
-  const [pinAuthRequest, setPinAuthRequest] = useState<{
-    type: 'spend' | 'cashout';
-    payload: any;
-    title: string;
-    subtitle?: string;
-    amount?: number;
-    currency?: string;
-    symbol?: string;
-    recipientName?: string;
-  } | null>(null);
-
-  const [pinModalMode, setPinModalMode] = useState<'verify' | 'setup' | 'change'>('verify');
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [isPinSet, setIsPinSet] = useState(() => Security.hasPin());
-
-  // Listen for storage / PIN updates across any component
-  React.useEffect(() => {
-    const handlePinUpdated = () => {
-      setIsPinSet(Security.hasPin());
-    };
-    window.addEventListener('payexpress_pin_updated', handlePinUpdated);
-    return () => window.removeEventListener('payexpress_pin_updated', handlePinUpdated);
-  }, []);
-
   // STK Push / Deposit state with live Cashramp payment session
   const [stkData, setStkData] = useState<{
     phone?: string;
@@ -138,62 +108,10 @@ export function App() {
     cryptoAsset?: string;
   } | null>(null);
 
-  const handleSpendConfirm = async (params: {
-    recipient: string;
-    recipientName: string;
-    amount: number;
-    accountNo?: string;
-    quote?: any;
-  }) => {
-    // Intercept: Require user's Security PIN authorization
-    setPinAuthRequest({
-      type: 'spend',
-      payload: params,
-      title: 'Authorize Payment',
-      subtitle: `Enter your Security PIN to send ${activeCountry.symbol}${params.amount.toLocaleString()} ${activeCountry.currency} to ${params.recipientName}`,
-      amount: params.amount,
-      currency: activeCountry.currency,
-      symbol: activeCountry.symbol,
-      recipientName: params.recipientName,
-    });
-    setPinModalMode(Security.hasPin() ? 'verify' : 'setup');
-    setIsPinModalOpen(true);
-  };
-
-  const handleCashOutConfirm = (params: { phone: string; cryptoAmount: number; fiatAmount: number }) => {
-    // Intercept: Require user's Security PIN authorization
-    setPinAuthRequest({
-      type: 'cashout',
-      payload: params,
-      title: 'Authorize Cash Out',
-      subtitle: `Enter your Security PIN to withdraw ${activeCountry.symbol}${params.fiatAmount.toLocaleString()} ${activeCountry.currency} to ${params.phone}`,
-      amount: params.fiatAmount,
-      currency: activeCountry.currency,
-      symbol: activeCountry.symbol,
-      recipientName: params.phone,
-    });
-    setPinModalMode(Security.hasPin() ? 'verify' : 'setup');
-    setIsPinModalOpen(true);
-  };
-
-  const handlePinSuccess = async () => {
-    setIsPinSet(true);
-    setIsPinModalOpen(false);
-
-    if (!pinAuthRequest) return;
-
-    const request = pinAuthRequest;
-    setPinAuthRequest(null);
-
-    if (request.type === 'spend') {
-      const tx = await executeSpend(request.payload);
-      setActiveReceipt(tx);
-      setCurrentView('home');
-    } else if (request.type === 'cashout') {
-      const tx = await executeCashOut(request.payload);
-      setActiveReceipt(tx);
-      setCurrentView('home');
-    }
+  const handleCashOutConfirm = async (params: { phone: string; cryptoAmount: number; fiatAmount: number }) => {
+    const tx = await executeCashOut(params);
+    setActiveReceipt(tx);
+    setCurrentView('home');
   };
 
   const handleDepositRequest = async (params: {
@@ -210,7 +128,7 @@ export function App() {
         bankAccountNumber: params.accountNumber,
         amount: params.amount,
         currency: activeCountry.currency,
-        cryptoAsset: activeCrypto === 'NIM' ? 'USDC' : activeCrypto,
+        cryptoAsset: activeCrypto === 'NIM' ? 'USDT' : activeCrypto,
         network: selectedChain === 'polygon' ? 'matic' : selectedChain,
         userWalletAddress: evmAddress,
         countryCode: activeCountry.code,
@@ -242,9 +160,8 @@ export function App() {
     });
   };
 
-  const handleConfirmPin = async (_pin?: string) => {
+  const handleConfirmDeposit = async () => {
     if (!stkData) return;
-    setIsPinSet(true);
     const tx = await executeDeposit(stkData);
     setStkData(null);
     setActiveReceipt(tx);
@@ -284,62 +201,10 @@ export function App() {
       <div className="view-body">
         {currentView === 'home' && (
           <div>
-            {/* Security Alert Banner when no PIN is set */}
-            {!isPinSet && (
-              <div style={{
-                background: 'var(--color-nimiq-gold-subtle)',
-                border: '1.5px solid var(--border-hero)',
-                borderRadius: 'var(--radius-md)',
-                padding: '12px 14px',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px',
-                boxShadow: 'var(--shadow-sm)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <ShieldAlert size={20} color="var(--color-nimiq-gold-dark)" style={{ flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      Security Setup Recommended
-                    </div>
-                    <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
-                      Create your 4-digit PIN to secure all payments and withdrawals.
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPinAuthRequest(null);
-                    setPinModalMode('setup');
-                    setIsPinModalOpen(true);
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, var(--color-nimiq-gold), var(--color-nimiq-gold-dark))',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    color: '#0F172A',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                    boxShadow: '0 2px 6px rgba(246, 174, 45, 0.3)',
-                  }}
-                >
-                  Set PIN
-                </button>
-              </div>
-            )}
-
             <WalletHero
               country={activeCountry}
               cryptoAsset={activeCrypto}
               nimBalance={nimBalance}
-              usdcBalance={usdcBalance}
               usdtBalance={usdtBalance}
               fiatValue={fiatEquivalent}
               evmAddress={evmAddress}
@@ -353,6 +218,56 @@ export function App() {
               countryName={activeCountry.name}
               rate={rate}
             />
+
+            {/* Quick Action Buttons for Add Funds & Cash Out */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentView('deposit')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '13px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'linear-gradient(135deg, var(--color-nimiq-gold), var(--color-nimiq-gold-dark))',
+                  border: 'none',
+                  color: '#0F172A',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(246, 174, 45, 0.35)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ArrowDownToLine size={18} strokeWidth={2.4} />
+                <span>Add Funds</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('cashout')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '13px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1.5px solid var(--border-hero)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ArrowUpRight size={18} strokeWidth={2.4} color="var(--color-emerald)" />
+                <span>Cash Out</span>
+              </button>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -368,15 +283,14 @@ export function App() {
           </div>
         )}
 
-        {currentView === 'pay' && (
-          <MerchantPay
+        {currentView === 'deposit' && (
+          <AddFunds
             country={activeCountry}
             cryptoAsset={activeCrypto}
-            maxCryptoBalance={maxCryptoBalance}
-            onNavigateToAddFunds={() => setCurrentView('deposit')}
-            onOpenCountryModal={() => setIsCountryModalOpen(true)}
+            selectedChain={selectedChain}
+            onOpenChainModal={() => setIsChainModalOpen(true)}
             onBack={() => setCurrentView('home')}
-            onExecutePay={handleSpendConfirm}
+            onRequestDeposit={handleDepositRequest}
           />
         )}
 
@@ -392,17 +306,6 @@ export function App() {
             onExecuteCashOut={handleCashOutConfirm}
           />
         )}
-
-        {currentView === 'deposit' && (
-          <AddFunds
-            country={activeCountry}
-            cryptoAsset={activeCrypto}
-            selectedChain={selectedChain}
-            onOpenChainModal={() => setIsChainModalOpen(true)}
-            onBack={() => setCurrentView('home')}
-            onRequestDeposit={handleDepositRequest}
-          />
-        )}
       </div>
 
       {/* Bottom Navigation */}
@@ -415,11 +318,11 @@ export function App() {
           <span>Home</span>
         </button>
         <button
-          className={`nav-tab ${currentView === 'pay' ? 'active' : ''}`}
-          onClick={() => setCurrentView('pay')}
+          className={`nav-tab ${currentView === 'deposit' ? 'active' : ''}`}
+          onClick={() => setCurrentView('deposit')}
         >
-          <Zap size={18} />
-          <span>Pay</span>
+          <ArrowDownToLine size={18} />
+          <span>Add Funds</span>
         </button>
         <button
           className={`nav-tab ${currentView === 'cashout' ? 'active' : ''}`}
@@ -427,13 +330,6 @@ export function App() {
         >
           <ArrowUpRight size={18} />
           <span>Cash Out</span>
-        </button>
-        <button
-          className={`nav-tab ${currentView === 'deposit' ? 'active' : ''}`}
-          onClick={() => setCurrentView('deposit')}
-        >
-          <ArrowDownToLine size={18} />
-          <span>Add Funds</span>
         </button>
       </nav>
 
@@ -475,7 +371,7 @@ export function App() {
         cryptoAmount={stkData?.cryptoAmount}
         agent={stkData?.agent}
         paymentDetails={stkData?.paymentDetails}
-        onConfirmPin={handleConfirmPin}
+        onConfirm={handleConfirmDeposit}
         onClose={() => setStkData(null)}
       />
 
@@ -484,28 +380,7 @@ export function App() {
         selectedChain={selectedChain}
         onSelectChain={setSelectedChain}
         onResetBalance={resetBalance}
-        onOpenPinModal={(mode) => {
-          setPinAuthRequest(null);
-          setPinModalMode(mode);
-          setIsPinModalOpen(true);
-        }}
         onClose={() => setIsSettingsModalOpen(false)}
-      />
-
-      <PinAuthModal
-        isOpen={isPinModalOpen}
-        mode={pinModalMode}
-        title={pinAuthRequest?.title}
-        subtitle={pinAuthRequest?.subtitle}
-        amount={pinAuthRequest?.amount}
-        currency={pinAuthRequest?.currency}
-        symbol={pinAuthRequest?.symbol}
-        recipientName={pinAuthRequest?.recipientName}
-        onSuccess={handlePinSuccess}
-        onClose={() => {
-          setIsPinModalOpen(false);
-          setPinAuthRequest(null);
-        }}
       />
     </main>
   );

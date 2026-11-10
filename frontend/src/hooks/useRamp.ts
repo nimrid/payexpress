@@ -83,7 +83,6 @@ export const useRamp = () => {
 
   // Balances (Initialized to 0 until queried from connected wallet)
   const [nimBalance, setNimBalance] = useState(0);
-  const [usdcBalance, setUsdcBalance] = useState(0);
   const [usdtBalance, setUsdtBalance] = useState(0);
   const [evmAddress, setEvmAddress] = useState<string | null>(null);
 
@@ -129,10 +128,8 @@ export const useRamp = () => {
         setEvmAddress(addr);
         if (addr) {
           try {
-            const usdc = await EVM.readTokenBalance('USDC', selectedChain);
             const usdt = await EVM.readTokenBalance('USDT', selectedChain);
             if (isMounted) {
-              setUsdcBalance(usdc);
               setUsdtBalance(usdt);
             }
           } catch {
@@ -206,9 +203,7 @@ export const useRamp = () => {
       setEvmAddress(addr);
       if (addr) {
         try {
-          const usdc = await EVM.readTokenBalance('USDC', selectedChain);
           const usdt = await EVM.readTokenBalance('USDT', selectedChain);
-          setUsdcBalance(usdc);
           setUsdtBalance(usdt);
         } catch {
           // ignore
@@ -251,9 +246,7 @@ export const useRamp = () => {
   const nimUsdRate = 0.00325;
   const currentCryptoUsd = activeCrypto === 'NIM'
     ? nimBalance * nimUsdRate
-    : activeCrypto === 'USDT'
-    ? usdtBalance
-    : usdcBalance;
+    : usdtBalance;
 
   const currentRateNum = parseFloat(rate?.depositRate || '1400');
   const fiatEquivalent = (currentCryptoUsd * currentRateNum).toLocaleString('en-US', {
@@ -261,7 +254,7 @@ export const useRamp = () => {
     maximumFractionDigits: 2,
   });
 
-  const maxCryptoBalance = activeCrypto === 'NIM' ? nimBalance : activeCrypto === 'USDT' ? usdtBalance : usdcBalance;
+  const maxCryptoBalance = activeCrypto === 'NIM' ? nimBalance : usdtBalance;
 
   // Execute Spend
   const executeSpend = async (params: {
@@ -295,7 +288,7 @@ export const useRamp = () => {
         }
         console.warn('[Nimiq SDK] Spend transaction note:', nimErr);
       }
-    } else if (activeCrypto === 'USDT' || activeCrypto === 'USDC') {
+    } else if (activeCrypto === 'USDT') {
       // If using EVM Stablecoin, call Nimiq Pay window.ethereum
       try {
         const cashrampPool = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'; // Polygon USDT
@@ -340,8 +333,7 @@ export const useRamp = () => {
 
     // Deduct balance
     if (activeCrypto === 'NIM') setNimBalance((b) => Math.max(0, b - cryptoAmount));
-    else if (activeCrypto === 'USDT') setUsdtBalance((b) => Math.max(0, b - cryptoAmount));
-    else setUsdcBalance((b) => Math.max(0, b - cryptoAmount));
+    else setUsdtBalance((b) => Math.max(0, b - cryptoAmount));
 
     recordTransaction(tx);
     return tx;
@@ -367,7 +359,7 @@ export const useRamp = () => {
         }
         console.warn('[Nimiq SDK] Cash out note:', nimErr);
       }
-    } else if (activeCrypto === 'USDT' || activeCrypto === 'USDC') {
+    } else if (activeCrypto === 'USDT') {
       try {
         // Cashramp Settlement Pool on Polygon
         const cashrampDepositPool = '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7';
@@ -406,8 +398,7 @@ export const useRamp = () => {
     };
 
     if (activeCrypto === 'NIM') setNimBalance((b) => Math.max(0, b - params.cryptoAmount));
-    else if (activeCrypto === 'USDT') setUsdtBalance((b) => Math.max(0, b - params.cryptoAmount));
-    else setUsdcBalance((b) => Math.max(0, b - params.cryptoAmount));
+    else setUsdtBalance((b) => Math.max(0, b - params.cryptoAmount));
 
     recordTransaction(tx);
     return tx;
@@ -459,8 +450,7 @@ export const useRamp = () => {
     };
 
     if (activeCrypto === 'NIM') setNimBalance((b) => b + parseFloat(cryptoCredit));
-    else if (activeCrypto === 'USDT') setUsdtBalance((b) => b + parseFloat(cryptoCredit));
-    else setUsdcBalance((b) => b + parseFloat(cryptoCredit));
+    else setUsdtBalance((b) => b + parseFloat(cryptoCredit));
 
     recordTransaction(tx);
     return tx;
@@ -468,7 +458,6 @@ export const useRamp = () => {
 
   const resetBalance = () => {
     setNimBalance(0);
-    setUsdcBalance(0);
     setUsdtBalance(0);
     setTransactions([]);
     try {
@@ -486,7 +475,6 @@ export const useRamp = () => {
     setSelectedChain,
     rate,
     nimBalance,
-    usdcBalance,
     usdtBalance,
     evmAddress,
     nimiqAddress,

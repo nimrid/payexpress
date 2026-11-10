@@ -27,7 +27,6 @@ const config = {
   polygon: {
     chainId: "0x89",
     usdtContract: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-    usdcContract: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     // Cashramp Settlement Pool on Polygon
     cashrampDepositPool: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7",
   },

@@ -1,6 +1,6 @@
 # PayExpress • Nimiq Pay African Ramp & Spend Mini-App
 
-**PayExpress** is a Web3 Mini-App designed for **[Nimiq Pay](https://nimiq.dev/mini-apps)**, powered by the official **[Cashramp](https://cashramp.co/commerce)** SDK (`cashramp`). It bridges on-chain crypto balances (**NIM**, **USDC**, and **USDT**) across 6 EVM networks with real-time retail mobile money rails across 30+ African countries.
+**PayExpress** is a Web3 Mini-App designed for **[Nimiq Pay](https://nimiq.dev/mini-apps)**, powered by the official **[Cashramp](https://cashramp.co/commerce)** SDK (`cashramp`). It bridges on-chain crypto balances (**NIM** and **USDT**) across 6 EVM networks with real-time retail mobile money rails across 30+ African countries.
 
 ---
 

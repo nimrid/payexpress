@@ -38,11 +38,7 @@ export interface ChainConfig {
   rpcUrl: string;
   blockExplorerUrl: string;
   tokens: {
-    USDT?: {
-      address: string;
-      decimals: number;
-    };
-    USDC?: {
+    USDT: {
       address: string;
       decimals: number;
     };
@@ -68,10 +64,6 @@ export const SUPPORTED_EVM_CHAINS: Record<SupportedChainKey, ChainConfig> = {
         address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
         decimals: 6,
       },
-      USDC: {
-        address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-        decimals: 6,
-      },
     },
   },
   arbitrum: {
@@ -90,10 +82,6 @@ export const SUPPORTED_EVM_CHAINS: Record<SupportedChainKey, ChainConfig> = {
         address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
         decimals: 6,
       },
-      USDC: {
-        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-        decimals: 6,
-      },
     },
   },
   base: {
@@ -108,8 +96,8 @@ export const SUPPORTED_EVM_CHAINS: Record<SupportedChainKey, ChainConfig> = {
     rpcUrl: 'https://mainnet.base.org',
     blockExplorerUrl: 'https://basescan.org',
     tokens: {
-      USDC: {
-        address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      USDT: {
+        address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
         decimals: 6,
       },
     },
@@ -130,10 +118,6 @@ export const SUPPORTED_EVM_CHAINS: Record<SupportedChainKey, ChainConfig> = {
         address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
         decimals: 6,
       },
-      USDC: {
-        address: '0x0b2C639c5333130819F78f566Bf72b956436430d',
-        decimals: 6,
-      },
     },
   },
   celo: {
@@ -152,10 +136,6 @@ export const SUPPORTED_EVM_CHAINS: Record<SupportedChainKey, ChainConfig> = {
         address: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
         decimals: 6,
       },
-      USDC: {
-        address: '0xcebA97Fced71279A271821486535e190f098014f',
-        decimals: 6,
-      },
     },
   },
   ethereum: {
@@ -172,10 +152,6 @@ export const SUPPORTED_EVM_CHAINS: Record<SupportedChainKey, ChainConfig> = {
     tokens: {
       USDT: {
         address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-        decimals: 6,
-      },
-      USDC: {
-        address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
         decimals: 6,
       },
     },
@@ -319,7 +295,7 @@ export const EVM = {
     return accounts[0];
   },
 
-  async readTokenBalance(tokenSymbol: 'USDT' | 'USDC', chainKey?: SupportedChainKey): Promise<number> {
+  async readTokenBalance(tokenSymbol: 'USDT' = 'USDT', chainKey?: SupportedChainKey): Promise<number> {
     const targetChainKey = chainKey || currentActiveChain;
     const chain = SUPPORTED_EVM_CHAINS[targetChainKey];
     const tokenConfig = chain.tokens[tokenSymbol];
@@ -350,7 +326,7 @@ export const EVM = {
   async sendTokenTransfer(
     recipientAddress: string,
     amount: number,
-    tokenSymbol: 'USDT' | 'USDC',
+    tokenSymbol: 'USDT' = 'USDT',
     chainKey?: SupportedChainKey
   ): Promise<string> {
     const targetChainKey = chainKey || currentActiveChain;

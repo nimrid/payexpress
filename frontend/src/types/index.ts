@@ -1,4 +1,4 @@
-export type CryptoAsset = 'NIM' | 'USDC' | 'USDT';
+export type CryptoAsset = 'NIM' | 'USDT';
 
 export interface Country {
   id: string;

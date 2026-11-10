@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Globe, Check, Sparkles, Cpu, Layers, ShieldCheck, Lock, Smartphone, User, KeyRound, AlertTriangle } from 'lucide-react';
+import { X, RefreshCw, Globe, Check, Sparkles, Cpu, Layers, ShieldCheck, Smartphone, User, AlertTriangle } from 'lucide-react';
 import { useTranslation } from '../../i18n/useTranslation';
 import { SupportedLanguage } from '../../i18n/translations';
 import { EVM, SUPPORTED_EVM_CHAINS, SupportedChainKey } from '../../services/evm';
@@ -10,7 +10,6 @@ interface SettingsModalProps {
   selectedChain?: SupportedChainKey;
   onSelectChain?: (chainKey: SupportedChainKey) => void;
   onResetBalance: () => void;
-  onOpenPinModal: (mode: 'setup' | 'change') => void;
   onClose: () => void;
 }
 
@@ -19,7 +18,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   selectedChain,
   onSelectChain,
   onResetBalance,
-  onOpenPinModal,
   onClose,
 }) => {
   const { currentLang, setLanguage, t, isNimiqDetected, supportedLanguages } = useTranslation();
@@ -29,25 +27,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // User Profile Credentials
   const [userName, setUserName] = useState('');
   const [userPhone, setUserPhone] = useState('');
-  const [hasPinConfigured, setHasPinConfigured] = useState(false);
   const [profileSavedNotice, setProfileSavedNotice] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setUserName(Security.getUserName());
       setUserPhone(Security.getUserPhone());
-      setHasPinConfigured(Security.hasPin());
       setProfileSavedNotice(false);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    const handlePinUpdated = () => {
-      setHasPinConfigured(Security.hasPin());
-    };
-    window.addEventListener('payexpress_pin_updated', handlePinUpdated);
-    return () => window.removeEventListener('payexpress_pin_updated', handlePinUpdated);
-  }, []);
 
   if (!isOpen) return null;
 
@@ -56,13 +44,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     Security.setUserPhone(userPhone);
     setProfileSavedNotice(true);
     setTimeout(() => setProfileSavedNotice(false), 2500);
-  };
-
-  const handleResetPin = () => {
-    if (window.confirm('Are you sure you want to reset your Security PIN? You will need to create a new one before sending funds.')) {
-      Security.resetPin();
-      setHasPinConfigured(false);
-    }
   };
 
   const handleChainSwitch = async (chainKey: SupportedChainKey) => {
@@ -120,19 +101,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Scrollable Settings Content */}
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '18px', paddingRight: '4px' }}>
           
-          {/* Security & PIN Settings Card */}
+          {/* Native Security Card */}
           <div style={{
-            background: hasPinConfigured ? 'var(--color-emerald-light)' : 'var(--color-nimiq-gold-subtle)',
-            border: `1.5px solid ${hasPinConfigured ? 'rgba(5, 150, 105, 0.35)' : 'var(--border-hero)'}`,
+            background: 'var(--color-emerald-light)',
+            border: '1.5px solid rgba(5, 150, 105, 0.35)',
             borderRadius: 'var(--radius-md)',
             padding: '14px 16px',
             boxShadow: 'var(--shadow-sm)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <KeyRound size={18} color={hasPinConfigured ? 'var(--color-emerald)' : 'var(--color-nimiq-gold-dark)'} />
+                <ShieldCheck size={18} color="var(--color-emerald)" />
                 <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                  Transaction Security PIN
+                  Nimiq Pay Native Security
                 </span>
               </div>
               <span style={{
@@ -140,94 +121,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 fontWeight: 800,
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-full)',
-                background: hasPinConfigured ? 'var(--color-emerald)' : 'var(--color-nimiq-gold-dark)',
+                background: 'var(--color-emerald)',
                 color: '#FFFFFF',
               }}>
-                {hasPinConfigured ? '✓ Active & Encrypted' : '⚠️ Not Configured'}
+                ✓ Enforced by Host Wallet
               </span>
             </div>
 
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4, fontWeight: 500 }}>
-              {hasPinConfigured
-                ? 'Your 4-digit PIN is stored with SHA-256 encryption. It is required to authorize all payments and offramps.'
-                : 'Protect your wallet from unauthorized transactions. Set a 4-digit PIN before sending funds.'}
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, fontWeight: 500, margin: 0 }}>
+              All transactions and withdrawals require biometric or passcode signing directly in your host Nimiq Pay wallet. No separate app-level PIN is required.
             </p>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {hasPinConfigured ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenPinModal('change');
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      background: 'var(--bg-surface-elevated)',
-                      border: '1.5px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.8rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: 'var(--shadow-sm)',
-                    }}
-                  >
-                    <Lock size={14} />
-                    <span>Change PIN</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResetPin}
-                    style={{
-                      padding: '8px 12px',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1.5px solid rgba(239, 68, 68, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#DC2626',
-                      fontSize: '0.8rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Reset
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onOpenPinModal('setup');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    background: 'linear-gradient(135deg, var(--color-nimiq-gold), var(--color-nimiq-gold-dark))',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    color: '#0F172A',
-                    fontSize: '0.84rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 8px rgba(246, 174, 45, 0.3)',
-                  }}
-                >
-                  <ShieldCheck size={16} />
-                  <span>Set Up 4-Digit Security PIN</span>
-                </button>
-              )}
-            </div>
           </div>
 
           {/* User Profile & Contact Credentials */}

@@ -397,15 +397,14 @@ class CashrampService {
    * Enum values: usd_tether, usd_coin, cusd, bitcoin, ethereum, litecoin, tron, solana
    */
   _mapCrypto(crypto) {
-    if (!crypto) return "usd_coin";
+    if (!crypto) return "usd_tether";
     const c = String(crypto).toUpperCase();
-    if (c === "USDC") return "usd_coin";
     if (c === "USDT") return "usd_tether";
     if (c === "CUSD") return "cusd";
     if (c === "BTC") return "bitcoin";
     if (c === "ETH") return "ethereum";
     if (c === "SOL") return "solana";
-    return "usd_coin";
+    return "usd_tether";
   }
 
   /**
@@ -417,7 +416,7 @@ class CashrampService {
     phoneNumber,
     bankAccountNumber,
     onchainAddress,
-    cryptoAsset = "USDC",
+    cryptoAsset = "USDT",
     network = "matic",
     amount,
     currency,

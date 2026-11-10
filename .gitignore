@@ -57,3 +57,16 @@ ehthumbs.db
 .parcel-cache/
 .temp/
 .tmp/
+
+# Demo Video & Media Production Assets
+tools/
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+*.wav
+*.aiff
+PayExpress_Demo_Thumbnail.png
+PayExpress_Product_Demo.mp4
+
