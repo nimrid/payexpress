@@ -45,7 +45,6 @@ export function App() {
     connectNimiq,
     executeCashOut,
     executeDeposit,
-    resetBalance,
   } = useRamp();
 
   const [currentView, setCurrentView] = useState<'home' | 'cashout' | 'deposit'>('home');
@@ -395,8 +394,11 @@ export function App() {
         isOpen={isSettingsModalOpen}
         selectedChain={selectedChain}
         onSelectChain={setSelectedChain}
-        onResetBalance={resetBalance}
         onClose={() => setIsSettingsModalOpen(false)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        activeCountry={activeCountry}
+        onOpenCountryModal={() => setIsCountryModalOpen(true)}
       />
     </main>
   );

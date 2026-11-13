@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Globe, Check, Sparkles, Cpu, Layers, ShieldCheck, Smartphone, User, AlertTriangle } from 'lucide-react';
+import { X, Globe, Check, Sparkles, Cpu, Layers, ShieldCheck, Smartphone, User, AlertTriangle, Sun, Moon, FlaskConical } from 'lucide-react';
 import { useTranslation } from '../../i18n/useTranslation';
 import { SupportedLanguage } from '../../i18n/translations';
 import { EVM, SUPPORTED_EVM_CHAINS, SupportedChainKey } from '../../services/evm';
 import { Security } from '../../services/security';
+import { Country } from '../../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
   selectedChain?: SupportedChainKey;
   onSelectChain?: (chainKey: SupportedChainKey) => void;
-  onResetBalance: () => void;
   onClose: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
+  activeCountry?: Country;
+  onOpenCountryModal?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   selectedChain,
   onSelectChain,
-  onResetBalance,
   onClose,
+  theme,
+  onToggleTheme,
+  activeCountry,
+  onOpenCountryModal,
 }) => {
   const { currentLang, setLanguage, t, isNimiqDetected, supportedLanguages } = useTranslation();
   const activeChain = selectedChain || EVM.activeChain;
@@ -101,6 +108,127 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Scrollable Settings Content */}
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '18px', paddingRight: '4px' }}>
           
+          {/* Beta Testing Environment Card */}
+          <div style={{
+            background: 'var(--color-nimiq-gold-subtle)',
+            border: '1.5px solid var(--border-hero)',
+            borderRadius: 'var(--radius-md)',
+            padding: '13px 15px',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <FlaskConical size={18} color="var(--color-nimiq-gold-dark)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Beta Testing Environment</span>
+                <span className="beta-badge">BETA</span>
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem', lineHeight: 1.45, fontWeight: 500 }}>
+                PayExpress is currently in open beta testing. Settlements run on Cashramp Testnet rails and Nimiq PoS preview testbed to protect user funds.
+              </div>
+            </div>
+          </div>
+
+          {/* Theme & Appearance Switcher */}
+          {onToggleTheme && theme && (
+            <div>
+              <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                {theme === 'light' ? <Sun size={14} color="var(--color-amber)" /> : <Moon size={14} color="var(--color-nimiq-gold)" />}
+                Theme & Appearance
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'light') onToggleTheme(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    background: theme === 'light' ? 'var(--color-nimiq-gold-subtle)' : 'var(--bg-surface-elevated)',
+                    border: `1.5px solid ${theme === 'light' ? 'var(--color-nimiq-gold)' : 'var(--border-subtle)'}`,
+                    color: theme === 'light' ? 'var(--color-nimiq-gold-dark)' : 'var(--text-secondary)',
+                    fontWeight: theme === 'light' ? 800 : 600,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Sun size={15} color="var(--color-amber)" />
+                  <span>Daylight</span>
+                  {theme === 'light' && <Check size={14} color="var(--color-nimiq-gold-dark)" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'dark') onToggleTheme(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    background: theme === 'dark' ? 'var(--color-nimiq-gold-subtle)' : 'var(--bg-surface-elevated)',
+                    border: `1.5px solid ${theme === 'dark' ? 'var(--color-nimiq-gold)' : 'var(--border-subtle)'}`,
+                    color: theme === 'dark' ? 'var(--color-nimiq-gold)' : 'var(--text-secondary)',
+                    fontWeight: theme === 'dark' ? 800 : 600,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Moon size={15} color="var(--color-nimiq-gold)" />
+                  <span>Night Mode</span>
+                  {theme === 'dark' && <Check size={14} color="var(--color-nimiq-gold)" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* African Settlement Corridor Shortcut */}
+          {activeCountry && onOpenCountryModal && (
+            <div>
+              <label style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <Globe size={14} color="var(--color-nimiq-gold-dark)" />
+                African Settlement Corridor
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenCountryModal();
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1.5px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>{activeCountry.flag}</span>
+                  <span>{activeCountry.name}</span>
+                  <span style={{ color: 'var(--text-accent)', fontSize: '0.78rem', fontWeight: 800 }}>({activeCountry.currency})</span>
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem', fontWeight: 600 }}>Change &gt;</span>
+              </button>
+            </div>
+          )}
+
           {/* Native Security Card */}
           <div style={{
             background: 'var(--color-emerald-light)',
@@ -336,46 +464,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Live SDK Status */}
-          <div style={{
-            background: 'var(--color-emerald-light)',
-            border: '1.5px solid rgba(5, 150, 105, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '10px 14px',
-            fontSize: '0.8rem',
-            color: 'var(--color-emerald)',
-            fontWeight: 700,
-          }}>
-            ✓ <strong>{t('cashrampStatus')}:</strong> {t('liveTestMode')}
-          </div>
-
           {/* Actions */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-            <button
-              onClick={() => {
-                onResetBalance();
-                onClose();
-              }}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-medium)',
-                borderRadius: 'var(--radius-md)',
-                color: '#F8FAFC',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              <RefreshCw size={16} />
-              <span>Reset Demo Balance (15k NIM / 150 USDT)</span>
-            </button>
-
+          <div style={{ marginTop: '8px' }}>
             <button
               onClick={onClose}
               style={{
@@ -385,9 +475,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 color: '#090D16',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
-                fontWeight: 700,
-                fontSize: '0.88rem',
+                fontWeight: 800,
+                fontSize: '0.90rem',
                 cursor: 'pointer',
+                boxShadow: '0 3px 10px rgba(246, 174, 45, 0.35)',
               }}
             >
               {t('close')}

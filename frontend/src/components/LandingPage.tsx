@@ -131,7 +131,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </svg>
               </div>
               <div className="landing-brand-text">
-                <span className="landing-brand-title">PayExpress</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="landing-brand-title">PayExpress</span>
+                  <span className="beta-badge">BETA</span>
+                </div>
                 <span className="landing-brand-tagline">Nimiq Pay & EVM Gateway</span>
               </div>
             </button>
