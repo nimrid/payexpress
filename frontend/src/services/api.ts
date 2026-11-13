@@ -151,4 +151,87 @@ export const API = {
       return { success: false, error: (err as Error).message };
     }
   },
+
+  // ChangeNOW Cross-Chain Swap & Bridge API
+  async getChangeNowEstimate(params: {
+    fromAmount: number;
+    fromCurrency?: string;
+    toCurrency?: string;
+    fromNetwork?: string;
+    toNetwork?: string;
+  }): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const {
+        fromAmount,
+        fromCurrency = 'nim',
+        toCurrency = 'usdt',
+        fromNetwork = 'nim',
+        toNetwork = 'matic',
+      } = params;
+      const res = await fetch(
+        `${BASE_URL}/api/changenow/estimate?fromAmount=${fromAmount}&fromCurrency=${fromCurrency}&toCurrency=${toCurrency}&fromNetwork=${fromNetwork}&toNetwork=${toNetwork}`
+      );
+      return await res.json();
+    } catch (err) {
+      console.error('API getChangeNowEstimate error:', err);
+      return { success: false, error: (err as Error).message };
+    }
+  },
+
+  async getChangeNowMinAmount(params?: {
+    fromCurrency?: string;
+    toCurrency?: string;
+    fromNetwork?: string;
+    toNetwork?: string;
+  }): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const {
+        fromCurrency = 'nim',
+        toCurrency = 'usdt',
+        fromNetwork = 'nim',
+        toNetwork = 'matic',
+      } = params || {};
+      const res = await fetch(
+        `${BASE_URL}/api/changenow/min-amount?fromCurrency=${fromCurrency}&toCurrency=${toCurrency}&fromNetwork=${fromNetwork}&toNetwork=${toNetwork}`
+      );
+      return await res.json();
+    } catch (err) {
+      console.error('API getChangeNowMinAmount error:', err);
+      return { success: false, error: (err as Error).message };
+    }
+  },
+
+  async createChangeNowExchange(params: {
+    fromAmount: number;
+    fromCurrency?: string;
+    toCurrency?: string;
+    fromNetwork?: string;
+    toNetwork?: string;
+    address: string;
+    refundAddress?: string;
+    extraId?: string;
+    refundExtraId?: string;
+  }): Promise<{ success: boolean; exchange?: any; error?: string }> {
+    try {
+      const res = await fetch(`${BASE_URL}/api/changenow/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API createChangeNowExchange error:', err);
+      return { success: false, error: (err as Error).message };
+    }
+  },
+
+  async getChangeNowStatus(id: string): Promise<{ success: boolean; status?: any; error?: string }> {
+    try {
+      const res = await fetch(`${BASE_URL}/api/changenow/status/${encodeURIComponent(id)}`);
+      return await res.json();
+    } catch (err) {
+      console.error('API getChangeNowStatus error:', err);
+      return { success: false, error: (err as Error).message };
+    }
+  },
 };

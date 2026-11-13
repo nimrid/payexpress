@@ -10,9 +10,13 @@ import {
   AlertTriangle,
   Smartphone,
   Building2,
-  Info
+  Wallet,
+  Info,
+  Loader2,
+  CreditCard,
+  AtSign
 } from 'lucide-react';
-import { Country, CryptoAsset, MarketRate, RampQuote, VerifiedRecipient } from '../types';
+import { Country, CryptoAsset, MarketRate, RampQuote, PaymentMethod, PaymentField } from '../types';
 import { SlideToPay } from './SlideToPay';
 import { useTranslation } from '../i18n/useTranslation';
 import { SUPPORTED_EVM_CHAINS, SupportedChainKey } from '../services/evm';
@@ -25,17 +29,441 @@ interface CashOutProps {
   cryptoAsset: CryptoAsset;
   maxCryptoBalance: number;
   rate?: MarketRate | number | null;
+  nimUsdRate?: number;
   selectedChain?: SupportedChainKey;
   onOpenChainModal?: () => void;
   onBack: () => void;
-  onExecuteCashOut: (params: { phone: string; cryptoAmount: number; fiatAmount: number }) => void;
+  onExecuteCashOut: (params: {
+    recipient?: string;
+    phone?: string;
+    recipientName?: string;
+    accountNo?: string;
+    bankName?: string;
+    paymentMethodType?: string;
+    methodName?: string;
+    fields?: Record<string, string>;
+    cryptoAmount: number;
+    fiatAmount: number;
+  }) => void;
 }
+
+const POPULAR_BANKS: Record<string, string[]> = {
+  NG: [
+    'Guaranty Trust Bank (GTBank)',
+    'Access Bank',
+    'Zenith Bank',
+    'First Bank of Nigeria',
+    'United Bank for Africa (UBA)',
+    'Moniepoint MFB',
+    'OPay (PayCom)',
+    'Kuda Microfinance Bank',
+    'PalmPay',
+    'Stanbic IBTC Bank',
+    'Wema Bank (ALAT)',
+  ],
+  GH: [
+    'Ecobank Ghana',
+    'GCB Bank Limited',
+    'Stanbic Bank Ghana',
+    'Absa Bank Ghana',
+    'Fidelity Bank Ghana',
+    'CalBank',
+  ],
+  ZA: [
+    'Capitec Bank',
+    'First National Bank (FNB)',
+    'Standard Bank',
+    'Absa Bank',
+    'Nedbank',
+    'Discovery Bank',
+    'Investec',
+  ],
+  KE: [
+    'Equity Bank',
+    'KCB Bank Kenya',
+    'Co-operative Bank of Kenya',
+    'NCBA Bank',
+    'Absa Bank Kenya',
+    'Stanbic Bank Kenya',
+  ],
+  TZ: [
+    'CRDB Bank',
+    'NMB Bank',
+    'Stanbic Bank Tanzania',
+    'Standard Chartered Tanzania',
+    'Absa Bank Tanzania',
+  ],
+  UG: [
+    'Stanbic Bank Uganda',
+    'Centenary Bank',
+    'Absa Bank Uganda',
+    'Standard Chartered Uganda',
+    'DFCU Bank',
+  ],
+  CM: [
+    'Afriland First Bank',
+    'Société Générale Cameroun',
+    'BICEC',
+    'Ecobank Cameroun',
+    'UBA Cameroun',
+  ],
+};
+
+const DEFAULT_CASHOUT_METHODS_FALLBACK: Record<string, PaymentMethod[]> = {
+  NG: [
+    {
+      id: 'default_bank_ng',
+      identifier: 'bank_transfer_ng',
+      name: 'Bank Account',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+      ],
+    },
+    {
+      id: 'default_chipper_ng',
+      identifier: 'chipper_cash',
+      name: 'Chipper Cash',
+      type: 'wallet',
+      tag: 'Digital Wallet',
+      fields: [
+        { label: 'ChipperTag', identifier: 'chipper_tag', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+  ],
+  GH: [
+    {
+      id: 'default_mtn_gh',
+      identifier: 'mtn_momo_gh',
+      name: 'MTN Mobile Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_bank_gh',
+      identifier: 'bank_transfer_gh',
+      name: 'Bank Account (Instant Pay)',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+      ],
+    },
+    {
+      id: 'default_voda_gh',
+      identifier: 'vodafone_cash_gh',
+      name: 'Vodafone Cash',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_airteltigo_gh',
+      identifier: 'airteltigo_money_gh',
+      name: 'AirtelTigo Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+  ],
+  ZA: [
+    {
+      id: 'default_capitec_za',
+      identifier: 'capitec',
+      name: 'Capitec Bank',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_fnb_za',
+      identifier: 'fnb',
+      name: 'FNB',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_nedbank_za',
+      identifier: 'nedbank',
+      name: 'Nedbank',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_absa_za',
+      identifier: 'absa',
+      name: 'Absa Bank',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_fnb_ewallet_za',
+      identifier: 'fnb_ewallet',
+      name: 'FNB E-Wallet',
+      type: 'wallet',
+      tag: 'Digital Wallet',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_bank_za',
+      identifier: 'bank_transfer',
+      name: 'Bank Transfer',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+      ],
+    },
+    {
+      id: 'default_easypay_za',
+      identifier: 'easypay',
+      name: 'EasyPay',
+      type: 'wallet',
+      tag: 'Digital Wallet',
+      fields: [
+        { label: 'PIN', identifier: 'pin', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+  ],
+  DZ: [
+    {
+      id: 'default_baridimob_dz',
+      identifier: 'baridimob',
+      name: 'BaridiMob (Algérie Poste)',
+      type: 'bank_transfer',
+      tag: 'Postal Bank',
+      fields: [
+        { label: 'RIP Number (20 digits)', identifier: 'rip', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'CCP Number (Optional)', identifier: 'ccp', required: false },
+      ],
+    },
+  ],
+  KE: [
+    {
+      id: 'default_till_ke',
+      identifier: 'pm_mpesa_till',
+      name: 'M-Pesa Till (Buy Goods)',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Till Number', identifier: 'phone_number', required: true },
+        { label: 'Store Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_paybill_ke',
+      identifier: 'm_pesa_paybill_ke',
+      name: 'M-Pesa Paybill',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Paybill Business No', identifier: 'paybill_number', required: true },
+        { label: 'Account Number', identifier: 'phone_number', required: true },
+        { label: 'Business Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_direct_bank_ke',
+      identifier: 'direct_bank_ke',
+      name: 'Direct Bank Transfer',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+      ],
+    },
+  ],
+  CM: [
+    {
+      id: 'default_mtn_cm',
+      identifier: 'mtn_momo',
+      name: 'MTN Mobile Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_orange_cm',
+      identifier: 'orange_money',
+      name: 'Orange Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+  ],
+  TZ: [
+    {
+      id: 'default_mpesa_tz',
+      identifier: 'mpesa_paybill',
+      name: 'M-PESA (Paybill)',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Paybill Number', identifier: 'paybill_number', required: true },
+        { label: 'Account Number', identifier: 'account_number', required: true },
+        { label: 'Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_mtn_tz',
+      identifier: 'mtn_momo',
+      name: 'MTN Mobile Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_airtel_tz',
+      identifier: 'airtel_money',
+      name: 'Airtel Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_bank_tz',
+      identifier: 'bank_transfer',
+      name: 'Bank Transfer',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+      ],
+    },
+  ],
+  UG: [
+    {
+      id: 'default_mpesa_ug',
+      identifier: 'mpesa',
+      name: 'M-PESA',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_mtn_ug',
+      identifier: 'mtn_momo',
+      name: 'MTN Mobile Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_airtel_ug',
+      identifier: 'airtel_money',
+      name: 'Airtel Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+  ],
+  ZM: [
+    {
+      id: 'default_mtn_zm',
+      identifier: 'mtn_momo',
+      name: 'MTN Mobile Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_airtel_zm',
+      identifier: 'airtel_money',
+      name: 'Airtel Money',
+      type: 'mobile_money',
+      tag: 'Mobile Money',
+      fields: [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ],
+    },
+    {
+      id: 'default_bank_zm',
+      identifier: 'bank_transfer',
+      name: 'Bank Transfer',
+      type: 'bank_transfer',
+      tag: 'Bank Transfer',
+      fields: [
+        { label: 'Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+      ],
+    },
+  ],
+};
 
 export const CashOut: React.FC<CashOutProps> = ({
   country,
   cryptoAsset,
   maxCryptoBalance,
   rate,
+  nimUsdRate = 0.000222,
   selectedChain = 'polygon',
   onOpenChainModal,
   onBack,
@@ -45,15 +473,50 @@ export const CashOut: React.FC<CashOutProps> = ({
   const effectiveRate = typeof rate === 'number'
     ? rate
     : parseFloat(rate?.withdrawalRate || rate?.depositRate || '1400');
-  const [payoutType, setPayoutType] = useState<'momo' | 'bank'>('momo');
-  const [phone, setPhone] = useState(() => Security.getUserPhone(country.dial));
-  const [inputMode, setInputMode] = useState<'fiat' | 'crypto'>('fiat');
-  const [fiatInput, setFiatInput] = useState('');
-  const [cryptoInput, setCryptoInput] = useState('');
 
-  // Recipient Verification
-  const [verifiedRecipient, setVerifiedRecipient] = useState<VerifiedRecipient | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
+  // Country-specific preset amounts
+  const presetAmounts = country.code === 'GH'
+    ? [50, 100, 200, 500, 1000]
+    : country.code === 'KE'
+    ? [500, 1000, 2500, 5000, 10000]
+    : country.code === 'ZA'
+    ? [100, 250, 500, 1000, 2500]
+    : country.code === 'DZ'
+    ? [1000, 2500, 5000, 10000, 20000]
+    : ['CM', 'CI', 'SN', 'BJ', 'BF', 'NE', 'TG', 'GA', 'TD', 'CF', 'CG'].includes(country.code)
+    ? [5000, 10000, 25000, 50000, 100000]
+    : [5000, 10000, 25000, 50000, 100000];
+
+  const defaultInitialAmount = presetAmounts[1].toString();
+
+  // Dynamic payment methods for active country
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(() => {
+    return DEFAULT_CASHOUT_METHODS_FALLBACK[country.code] || DEFAULT_CASHOUT_METHODS_FALLBACK.NG;
+  });
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(() => {
+    const list = DEFAULT_CASHOUT_METHODS_FALLBACK[country.code] || DEFAULT_CASHOUT_METHODS_FALLBACK.NG;
+    return list[0];
+  });
+  const [isLoadingMethods, setIsLoadingMethods] = useState(false);
+
+  // Dynamic field values
+  const [formValues, setFormValues] = useState<Record<string, string>>(() => ({
+    phone_number: Security.getUserPhone(country.dial),
+    name: Security.getUserName() || '',
+    bank_account_number: '',
+    bank_name: POPULAR_BANKS[country.code]?.[0] || 'Commercial Bank',
+    custom_bank_name: '',
+    chipper_tag: '',
+    rip: '',
+    ccp: '',
+    pin: '',
+    paybill_number: '',
+    account_number: '',
+  }));
+
+  const [inputMode, setInputMode] = useState<'fiat' | 'crypto'>('fiat');
+  const [fiatInput, setFiatInput] = useState(defaultInitialAmount);
+  const [cryptoInput, setCryptoInput] = useState('');
 
   // Live Quote & Countdown
   const [quote, setQuote] = useState<RampQuote | null>(null);
@@ -64,44 +527,74 @@ export const CashOut: React.FC<CashOutProps> = ({
 
   const chainConfig = SUPPORTED_EVM_CHAINS[selectedChain] || SUPPORTED_EVM_CHAINS.polygon;
 
-  // Recipient verification (debounced)
+  // Fetch live Cashramp payment methods whenever country changes
   useEffect(() => {
-    const cleanNumber = phone.trim();
-    if (!cleanNumber || cleanNumber.length < 5) {
-      setVerifiedRecipient(null);
-      setIsVerifying(false);
-      return;
-    }
+    let isMounted = true;
+    setIsLoadingMethods(true);
 
-    setIsVerifying(true);
-    const timer = setTimeout(async () => {
+    const loadMethods = async () => {
       try {
-        const res = await API.verifyRecipient(
-          cleanNumber, 
-          country.code, 
-          payoutType === 'bank' ? 'bank' : 'phone'
-        );
-        if (res.success && res.verified) {
-          setVerifiedRecipient({
-            verified: true,
-            recipientName: res.recipientName || 'Verified Payout Account',
-            category: res.category || 'Mobile Wallet',
-            provider: res.provider || (payoutType === 'bank' ? 'Commercial Bank' : 'Mobile Money'),
-            verifiedBadge: res.verifiedBadge || 'KYC Verified',
-            bankName: res.bankName,
-          });
-        } else {
-          setVerifiedRecipient(null);
+        const liveMethods = await API.getPaymentMethods(country.code, country.id);
+        if (isMounted && Array.isArray(liveMethods) && liveMethods.length > 0) {
+          setPaymentMethods(liveMethods);
+          setSelectedMethod(liveMethods[0]);
+          return;
         }
       } catch (err) {
-        console.error('Cashout recipient lookup error:', err);
-      } finally {
-        setIsVerifying(false);
+        console.warn('[CashOut] Live payment methods query notice:', err);
       }
-    }, 400);
 
-    return () => clearTimeout(timer);
-  }, [phone, country.code, payoutType]);
+      if (isMounted) {
+        const fallback = DEFAULT_CASHOUT_METHODS_FALLBACK[country.code] || [
+          {
+            id: `default_momo_${country.code.toLowerCase()}`,
+            identifier: 'mobile_money',
+            name: `${country.name} Mobile Money`,
+            type: 'mobile_money',
+            tag: 'Mobile Money',
+            fields: [
+              { label: 'Phone Number', identifier: 'phone_number', required: true },
+              { label: 'Account Name', identifier: 'name', required: true },
+            ],
+          },
+          {
+            id: `default_bank_${country.code.toLowerCase()}`,
+            identifier: 'bank_transfer',
+            name: 'Bank Account Transfer',
+            type: 'bank_transfer',
+            tag: 'Bank Transfer',
+            fields: [
+              { label: 'Account Number', identifier: 'bank_account_number', required: true },
+              { label: 'Account Name', identifier: 'name', required: true },
+              { label: 'Bank Name', identifier: 'bank_name', required: true },
+            ],
+          },
+        ];
+        setPaymentMethods(fallback);
+        setSelectedMethod(fallback[0]);
+      }
+      setIsLoadingMethods(false);
+    };
+
+    loadMethods().finally(() => {
+      if (isMounted) setIsLoadingMethods(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [country.code, country.id]);
+
+  // Update field handler
+  const handleFieldChange = (key: string, val: string) => {
+    setFormValues((prev) => ({ ...prev, [key]: val }));
+    if (key === 'phone_number') {
+      Security.setUserPhone(val);
+    }
+    if (key === 'name') {
+      Security.setUserName(val);
+    }
+  };
 
   // Quote Fetcher
   const fetchQuote = useCallback(async (isRefresh = false) => {
@@ -110,8 +603,8 @@ export const CashOut: React.FC<CashOutProps> = ({
       fiatAmountNum = parseFloat(fiatInput) || 0;
     } else {
       const cryptoNum = parseFloat(cryptoInput) || 0;
-      const nimUsdRate = 0.00325;
-      const usdVal = cryptoAsset === 'NIM' ? cryptoNum * nimUsdRate : cryptoNum;
+      const activeNimRate = nimUsdRate || 0.000222;
+      const usdVal = cryptoAsset === 'NIM' ? cryptoNum * activeNimRate : cryptoNum;
       fiatAmountNum = usdVal * effectiveRate;
     }
 
@@ -127,6 +620,7 @@ export const CashOut: React.FC<CashOutProps> = ({
         currency: country.currency,
         cryptoAsset,
         countryCode: country.code,
+        paymentMethodIdentifier: selectedMethod.identifier,
         type: 'spend',
       });
 
@@ -146,15 +640,15 @@ export const CashOut: React.FC<CashOutProps> = ({
     } finally {
       setIsQuoting(false);
     }
-  }, [fiatInput, cryptoInput, inputMode, country.currency, country.code, cryptoAsset, effectiveRate]);
+  }, [fiatInput, cryptoInput, inputMode, country.currency, country.code, cryptoAsset, effectiveRate, selectedMethod.identifier]);
 
-  // Trigger quote when inputs change
+  // Trigger quote when inputs or selected payment method changes
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchQuote(false);
     }, 350);
     return () => clearTimeout(timer);
-  }, [fiatInput, cryptoInput, inputMode, fetchQuote]);
+  }, [fiatInput, cryptoInput, inputMode, selectedMethod.identifier, fetchQuote]);
 
   // 45s countdown timer
   useEffect(() => {
@@ -179,13 +673,86 @@ export const CashOut: React.FC<CashOutProps> = ({
   const activeFiatReceived = quote ? quote.fiatAmount : (parseFloat(fiatInput) || 0);
   const isInsufficient = activeCryptoRequired > maxCryptoBalance;
 
+  // Validate that all required fields for selected method are filled
+  const fieldsConfig: PaymentField[] = selectedMethod.fields && selectedMethod.fields.length > 0
+    ? selectedMethod.fields
+    : selectedMethod.type === 'bank_transfer'
+    ? [
+        { label: 'Bank Account Number', identifier: 'bank_account_number', required: true },
+        { label: 'Bank Name', identifier: 'bank_name', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ]
+    : selectedMethod.type === 'wallet'
+    ? [
+        { label: 'ChipperTag / Wallet ID', identifier: 'chipper_tag', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ]
+    : [
+        { label: 'Phone Number', identifier: 'phone_number', required: true },
+        { label: 'Account Name', identifier: 'name', required: true },
+      ];
+
+  const hasRequiredFields = fieldsConfig.every((f) => {
+    if (!f.required) return true;
+    if (f.identifier === 'bank_name') {
+      const bVal = formValues.bank_name === 'OTHER_CUSTOM' ? formValues.custom_bank_name : formValues.bank_name;
+      return Boolean(bVal && bVal.trim().length > 1);
+    }
+    const val = formValues[f.identifier];
+    return Boolean(val && val.trim().length > 1);
+  });
+
+  const getPrimaryIdentifier = () => {
+    return formValues.bank_account_number ||
+      formValues.phone_number ||
+      formValues.chipper_tag ||
+      formValues.rip ||
+      formValues.account_number ||
+      '';
+  };
+
+  const getEffectiveBankName = () => {
+    if (formValues.bank_name === 'OTHER_CUSTOM') {
+      return formValues.custom_bank_name || 'Other Bank';
+    }
+    return formValues.bank_name || POPULAR_BANKS[country.code]?.[0] || 'Commercial Bank';
+  };
+
   const handleSlideConfirm = () => {
-    if (activeCryptoRequired <= 0 || !phone.trim() || isInsufficient) return;
+    if (activeCryptoRequired <= 0 || !hasRequiredFields || isInsufficient) return;
+
+    const primary = getPrimaryIdentifier();
+    const bank = getEffectiveBankName();
+    const name = formValues.name || Security.getUserName() || 'Recipient';
+
     onExecuteCashOut({
-      phone,
+      recipient: primary,
+      phone: formValues.phone_number || primary,
+      recipientName: name,
+      accountNo: formValues.bank_account_number || formValues.account_number || formValues.rip || primary,
+      bankName: bank,
+      paymentMethodType: selectedMethod.identifier,
+      methodName: selectedMethod.name,
+      fields: {
+        ...formValues,
+        bank_name: bank,
+      },
       cryptoAmount: activeCryptoRequired,
       fiatAmount: activeFiatReceived,
     });
+  };
+
+  // Helper icon for payment method badge
+  const getMethodIcon = (m: PaymentMethod) => {
+    const idLower = (m.identifier || '').toLowerCase();
+    const nameLower = (m.name || '').toLowerCase();
+    if (idLower.includes('bank') || nameLower.includes('bank') || idLower.includes('baridi') || idLower === 'absa' || idLower === 'fnb' || idLower === 'capitec' || idLower === 'nedbank') {
+      return <Building2 size={15} />;
+    }
+    if (idLower.includes('chipper') || idLower.includes('wallet') || idLower === 'easypay') {
+      return <Wallet size={15} />;
+    }
+    return <Smartphone size={15} />;
   };
 
   return (
@@ -216,7 +783,7 @@ export const CashOut: React.FC<CashOutProps> = ({
             {t('cashOut')}
           </h2>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Offramp Crypto to MoMo / Bank
+            {country.flag} {country.name} • Offramp Crypto to Local Fiat
           </span>
         </div>
         <div style={{ width: '40px' }} />
@@ -272,97 +839,242 @@ export const CashOut: React.FC<CashOutProps> = ({
         )}
       </div>
 
-      {/* Payout Rail Switcher */}
-      <div className="tab-group" style={{ marginBottom: '16px' }}>
-        <button
-          onClick={() => { setPayoutType('momo'); setVerifiedRecipient(null); }}
-          className={`tab-btn ${payoutType === 'momo' ? 'active' : ''}`}
-        >
-          <Smartphone size={14} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} />
-          Mobile Money (M-Pesa / MoMo)
-        </button>
-        <button
-          onClick={() => { setPayoutType('bank'); setVerifiedRecipient(null); }}
-          className={`tab-btn ${payoutType === 'bank' ? 'active' : ''}`}
-        >
-          <Building2 size={14} style={{ marginRight: '6px', verticalAlign: 'text-bottom' }} />
-          Bank Account (EFT / NUBAN)
-        </button>
-      </div>
-
-      {/* Recipient Account Input */}
+      {/* Country Specific Payout Rail Selector */}
       <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-          <span>
-            {payoutType === 'momo' ? 'Destination Mobile Number' : 'Destination Bank Account Number'}
-          </span>
-          {isVerifying ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: 'var(--color-nimiq-gold-dark)', fontSize: '0.74rem', fontWeight: 700 }}>
-              <RefreshCw size={12} className="spin-slow" /> Verifying registered name...
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Select {country.name} Payout Method:
+          </label>
+          {isLoadingMethods && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--color-nimiq-gold-dark)' }}>
+              <Loader2 size={12} className="spin-animate" /> Loading rails
             </span>
-          ) : verifiedRecipient ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-emerald)', fontSize: '0.74rem', fontWeight: 800 }}>
-              <CheckCircle2 size={13} /> {verifiedRecipient.verifiedBadge || 'Verified'}
-            </span>
-          ) : null}
+          )}
         </div>
 
-        <input
-          type="text"
-          className="input-field"
-          value={phone}
-          onChange={(e) => {
-            setPhone(e.target.value);
-            Security.setUserPhone(e.target.value);
-          }}
-          placeholder={payoutType === 'momo' ? `${country.dial} 712 345 678` : 'e.g. 0123456789'}
-          style={{
-            borderColor: verifiedRecipient ? 'var(--color-emerald)' : undefined,
-            fontWeight: 700,
-          }}
-        />
+        {/* Responsive Grid of Verified Country Methods */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: paymentMethods.length > 2 ? 'repeat(2, 1fr)' : `repeat(${Math.max(1, paymentMethods.length)}, 1fr)`,
+          gap: '8px',
+        }}>
+          {paymentMethods.map((method) => {
+            const isSelected = selectedMethod.identifier === method.identifier;
+            return (
+              <button
+                key={method.id || method.identifier}
+                type="button"
+                onClick={() => setSelectedMethod(method)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, var(--color-nimiq-gold-subtle), var(--bg-surface-elevated))'
+                    : 'var(--bg-surface)',
+                  border: isSelected
+                    ? '2px solid var(--color-nimiq-gold)'
+                    : '1.5px solid var(--border-subtle)',
+                  color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isSelected ? '0 2px 8px rgba(246, 174, 45, 0.25)' : 'none',
+                }}
+              >
+                <div style={{
+                  color: isSelected ? 'var(--color-nimiq-gold-dark)' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                }}>
+                  {getMethodIcon(method)}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {method.name}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: isSelected ? 'var(--color-nimiq-gold-dark)' : 'var(--text-muted)', fontWeight: 600 }}>
+                    {method.tag || 'Instant Payout'}
+                  </div>
+                </div>
+                {isSelected && (
+                  <CheckCircle2 size={14} color="var(--color-nimiq-gold-dark)" style={{ flexShrink: 0 }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Verified Recipient Card */}
-      {verifiedRecipient && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(246, 174, 45, 0.06) 100%)',
-          border: '1.5px solid var(--color-emerald)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 14px',
-          marginBottom: '16px',
-          boxShadow: 'var(--shadow-sm)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-                <ShieldCheck size={13} style={{ color: 'var(--color-emerald)' }} />
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-emerald)', textTransform: 'uppercase' }}>
-                  {verifiedRecipient.verifiedBadge}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  • {verifiedRecipient.provider}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.96rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                {verifiedRecipient.recipientName}
-              </div>
-            </div>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--color-emerald-subtle)',
-              color: 'var(--color-emerald)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <CheckCircle2 size={18} />
-            </div>
-          </div>
+      {/* Dynamic Required Account Fields for Selected Payment Rail */}
+      <div style={{
+        background: 'var(--bg-surface-elevated)',
+        border: '1.5px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: '14px',
+        marginBottom: '16px',
+        boxShadow: 'var(--shadow-sm)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
+          <ShieldCheck size={16} color="var(--color-emerald)" />
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            Recipient Details • {selectedMethod.name}
+          </span>
         </div>
-      )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {fieldsConfig.map((field) => {
+            const fid = field.identifier;
+
+            // Bank Name dropdown for bank transfer rails
+            if (fid === 'bank_name') {
+              const countryBanks = POPULAR_BANKS[country.code] || [];
+              const isCustom = formValues.bank_name === 'OTHER_CUSTOM';
+
+              return (
+                <div key={fid}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                    {field.label} {field.required && <span style={{ color: 'var(--color-rose)' }}>*</span>}
+                  </label>
+                  {countryBanks.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <select
+                        className="input-field"
+                        value={formValues.bank_name}
+                        onChange={(e) => handleFieldChange('bank_name', e.target.value)}
+                        style={{ fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        {countryBanks.map((bName) => (
+                          <option key={bName} value={bName}>{bName}</option>
+                        ))}
+                        <option value="OTHER_CUSTOM">Other Bank (Type name)...</option>
+                      </select>
+                      {isCustom && (
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="Enter your Bank Name"
+                          value={formValues.custom_bank_name}
+                          onChange={(e) => handleFieldChange('custom_bank_name', e.target.value)}
+                          style={{ fontWeight: 700 }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="e.g. Standard Bank"
+                      value={formValues.bank_name}
+                      onChange={(e) => handleFieldChange('bank_name', e.target.value)}
+                      style={{ fontWeight: 700 }}
+                    />
+                  )}
+                </div>
+              );
+            }
+
+            // Phone Number Input with Dial Code Badge
+            if (fid === 'phone_number') {
+              return (
+                <div key={fid}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                    {field.label} {field.required && <span style={{ color: 'var(--color-rose)' }}>*</span>}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: 'var(--text-muted)',
+                      pointerEvents: 'none',
+                    }}>
+                      <span>{country.flag}</span>
+                      <span>{country.dial}</span>
+                    </div>
+                    <input
+                      type="tel"
+                      className="input-field"
+                      placeholder="712 345 678"
+                      value={formValues.phone_number?.replace(country.dial, '').trimStart()}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        handleFieldChange('phone_number', `${country.dial} ${raw}`);
+                      }}
+                      style={{ paddingLeft: '72px', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            // Chipper Cash Tag
+            if (fid === 'chipper_tag') {
+              return (
+                <div key={fid}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                    {field.label} {field.required && <span style={{ color: 'var(--color-rose)' }}>*</span>}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <AtSign size={16} style={{ position: 'absolute', left: '12px', color: 'var(--color-nimiq-gold-dark)', pointerEvents: 'none' }} />
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="username"
+                      value={formValues.chipper_tag?.replace('@', '')}
+                      onChange={(e) => handleFieldChange('chipper_tag', `@${e.target.value.trim().replace(/^@+/, '')}`)}
+                      style={{ paddingLeft: '34px', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            // Standard Bank Account / Paybill / RIP / PIN / Name Inputs
+            const isBankAcc = fid === 'bank_account_number' || fid === 'account_number' || fid === 'rip';
+            const placeholder = isBankAcc
+              ? (country.code === 'DZ' ? '00799999000000000000' : '0123456789')
+              : fid === 'name'
+              ? 'Account / Beneficiary Full Name'
+              : fid === 'paybill_number'
+              ? 'Business Paybill Number'
+              : fid === 'pin'
+              ? '4 to 6 digit EasyPay PIN'
+              : `Enter ${field.label}`;
+
+            return (
+              <div key={fid}>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                  {field.label} {field.required && <span style={{ color: 'var(--color-rose)' }}>*</span>}
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  {isBankAcc && (
+                    <CreditCard size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                  )}
+                  <input
+                    type={fid === 'pin' ? 'password' : 'text'}
+                    className="input-field"
+                    placeholder={placeholder}
+                    value={formValues[fid] || ''}
+                    onChange={(e) => handleFieldChange(fid, e.target.value)}
+                    style={{
+                      paddingLeft: isBankAcc ? '36px' : undefined,
+                      fontWeight: 700,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Fiat-First Amount Input */}
       <div style={{ marginBottom: '16px' }}>
@@ -431,7 +1143,7 @@ export const CashOut: React.FC<CashOutProps> = ({
 
       {/* Quick Amount Chips */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
-        {[1000, 2500, 5000, 10000, 25000].map((val) => (
+        {presetAmounts.map((val) => (
           <button
             key={val}
             type="button"
@@ -547,18 +1259,27 @@ export const CashOut: React.FC<CashOutProps> = ({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
-          <span>Cashramp P2P Rate</span>
+          <span>Cashramp P2P Rate ({selectedMethod.name})</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-secondary)' }}>
             1 USD = {quote ? quote.exchangeRate.toLocaleString() : effectiveRate.toLocaleString()} {country.currency}
           </span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
-          <span>Settlement Fee</span>
-          <span style={{ color: 'var(--color-emerald)', fontWeight: 800 }}>
-            Sponsored 0.00%
+          <span>Settlement Rail</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
+            {selectedMethod.name} ({country.code})
           </span>
         </div>
+
+        {cryptoAsset === 'NIM' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <span>Cross-Chain Bridge</span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--color-emerald)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              ⚡ ChangeNOW (NIM ➔ USDT Polygon)
+            </span>
+          </div>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontWeight: 600 }}>
           <span>Crypto Deducted</span>
@@ -580,9 +1301,9 @@ export const CashOut: React.FC<CashOutProps> = ({
           marginTop: '2px',
         }}>
           <div>
-            <div>You Receive in MoMo / Bank</div>
+            <div>You Receive</div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Exact net deposit to your account
+              Direct {selectedMethod.name} payout
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -606,13 +1327,13 @@ export const CashOut: React.FC<CashOutProps> = ({
         padding: '0 4px',
       }}>
         <Info size={13} style={{ color: 'var(--color-nimiq-gold-dark)', flexShrink: 0 }} />
-        <span>Funds are deposited directly by Cashramp licensed local liquidity agents.</span>
+        <span>Payout sent directly to your {selectedMethod.name} via verified local Cashramp settlement agents.</span>
       </div>
 
       <SlideToPay 
         label={t('slideToCashOut')} 
         onConfirm={handleSlideConfirm} 
-        disabled={activeCryptoRequired <= 0 || !phone.trim() || isInsufficient} 
+        disabled={activeCryptoRequired <= 0 || !hasRequiredFields || isInsufficient} 
       />
     </div>
   );

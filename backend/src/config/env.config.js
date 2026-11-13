@@ -1,7 +1,9 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config(); // fallback to cwd
 
 const rawSecret = (process.env.CASHRAMP_SECRET_KEY || "").trim();
-const rawPublic = (process.env.CASHRAMP_PUBLIC_KEY || "").trim();
+const rawPublic = (process.env.CASHRAMP_PUBLIC_KEY || process.env.CASHRAMP_API_KEY || "").trim();
 
 const isPub = (k) => typeof k === "string" && k.startsWith("CSHRMP-PUBK_");
 const isSec = (k) => typeof k === "string" && k.startsWith("CSHRMP-SECK_");
@@ -10,15 +12,22 @@ const isSec = (k) => typeof k === "string" && k.startsWith("CSHRMP-SECK_");
 const publicKey = rawPublic || (isPub(rawSecret) ? rawSecret : null) || "CSHRMP-PUBK_HamT0iejk40UYXA6";
 
 // Cashramp GraphQL requires a Secret Key (CSHRMP-SECK_...) for mutations (quotes, customers, deposits, withdrawals).
-// If user sets a SECK, use it; otherwise use the verified sandbox test key.
 const secretKey = isSec(rawSecret) ? rawSecret : (process.env.CASHRAMP_MUTATION_KEY || "CSHRMP-SECK_ArOjcxRdVmfolD6m");
+
+// Cashramp SDK accepts env: "test" or "live"
+const rawEnv = (process.env.CASHRAMP_ENV || "").toLowerCase().trim();
+const normalizedEnv = (rawEnv === "production" || rawEnv === "prod" || rawEnv === "live") ? "live" : "test";
 
 const config = {
   port: parseInt(process.env.PORT, 10) || 5001,
   cashramp: {
-    env: process.env.CASHRAMP_ENV || "test",
+    env: normalizedEnv,
     publicKey,
     secretKey,
+  },
+  changenow: {
+    apiKey: (process.env.CHANGENOW_API_KEY || "").trim(),
+    baseUrl: (process.env.CHANGENOW_BASE_URL || "https://api.changenow.io").replace(/\/$/, ""),
   },
   nimiq: {
     network: process.env.NIMIQ_NETWORK || "albatross",

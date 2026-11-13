@@ -1,5 +1,7 @@
 const client = require("../config/cashramp.config");
+const config = require("../config/env.config");
 const { COUNTRY_METADATA } = require("../data/countries.data");
+const changeNowService = require("./changenow.service");
 
 // In-memory cache for customer IDs to avoid re-creating on every request
 const customerCache = new Map();
@@ -223,9 +225,16 @@ class CashrampService {
     const liveRate = parseFloat(response.result.exchangeRate) || unitRate;
     const calculatedFiat = isUsd ? Number((numAmount * liveRate).toFixed(2)) : numAmount;
 
+    let liveNimRate = config.nimiq.nimUsdRate || 0.00022;
+    try {
+      liveNimRate = await changeNowService.getLiveMarketNimRate();
+    } catch (e) {
+      // fallback
+    }
+
     const computeCryptoCost = (usd, asset) => {
       const a = (asset || "USDT").toUpperCase();
-      if (a === "NIM") return Number((usd / 0.00325).toFixed(2));
+      if (a === "NIM") return Number((usd / liveNimRate).toFixed(1));
       if (a === "CELO") return Number((usd / 0.65).toFixed(3));
       return Number(usd.toFixed(2));
     };
@@ -238,6 +247,7 @@ class CashrampService {
       fiatCurrency: country.currency,
       cryptoAsset: cryptoAsset || "USDT",
       cryptoAmount: computeCryptoCost(usdAmount, cryptoAsset),
+      nimUsdRate: liveNimRate,
       paymentMethodType: targetPmType,
       paymentType,
       expiresAt: new Date(Date.now() + 45000).toISOString(),
@@ -270,6 +280,7 @@ class CashrampService {
     bankName,
     paymentMethodType,
     nimiqTxHash,
+    fields,
   }) {
     if (!client) throw new Error("Cashramp client not configured");
 
@@ -281,22 +292,44 @@ class CashrampService {
     const ref = reference || `CR_WD_${Date.now().toString().slice(-6)}_${Math.floor(100 + Math.random() * 900)}`;
 
     let resolvedPmType = paymentMethodType;
+    const livePms = await this.getPaymentMethods(country.id, country.code);
     if (!resolvedPmType) {
-      const livePms = await this.getPaymentMethods(country.id, country.code);
       resolvedPmType = livePms[0]?.identifier || (code === "NG" ? "bank_transfer_ng" : "mobile_money");
     }
+    const matchedMethod = livePms.find((m) => m.identifier === resolvedPmType);
 
     // Ensure payment method is registered on Cashramp
     let activePaymentMethodId = paymentMethodId;
     if (!activePaymentMethodId || !activePaymentMethodId.startsWith("VHlwZXM6OkNhc2hyYW1wOjpQMlBQYXltZW50TWV0aG9k")) {
       const pmFields = [];
-      if (resolvedPmType.includes("bank") || code === "NG") {
-        pmFields.push({ identifier: "bank_account_number", value: String(accountNo || recipient || "0123456789") });
-        pmFields.push({ identifier: "name", value: String(recipientName || "Recipient") });
-        pmFields.push({ identifier: "bank_name", value: String(bankName || "Access Bank") });
+      const fieldsInput = (typeof fields === "object" && fields !== null) ? fields : {};
+
+      if (matchedMethod && Array.isArray(matchedMethod.fields) && matchedMethod.fields.length > 0) {
+        for (const reqField of matchedMethod.fields) {
+          const fid = reqField.identifier;
+          let val = fieldsInput[fid];
+          if (!val) {
+            if (fid === "name") val = recipientName || "Beneficiary";
+            else if (fid === "phone_number") val = recipient || accountNo || "+234800000000";
+            else if (fid === "bank_account_number" || fid === "account_number") val = accountNo || recipient || "0123456789";
+            else if (fid === "bank_name") val = bankName || "Commercial Bank";
+            else if (fid === "chipper_tag") val = recipient || "@user";
+            else if (fid === "rip") val = accountNo || recipient || "00799999000000000000";
+            else if (fid === "paybill_number") val = fieldsInput.paybill_number || "888880";
+            else if (fid === "pin") val = fieldsInput.pin || "0000";
+            else val = recipient || accountNo || "N/A";
+          }
+          pmFields.push({ identifier: fid, value: String(val) });
+        }
       } else {
-        pmFields.push({ identifier: "phone_number", value: String(recipient || "+234800000000") });
-        pmFields.push({ identifier: "name", value: String(recipientName || "Recipient") });
+        if (resolvedPmType.includes("bank") || code === "NG") {
+          pmFields.push({ identifier: "bank_account_number", value: String(accountNo || recipient || "0123456789") });
+          pmFields.push({ identifier: "name", value: String(recipientName || "Recipient") });
+          pmFields.push({ identifier: "bank_name", value: String(bankName || "Access Bank") });
+        } else {
+          pmFields.push({ identifier: "phone_number", value: String(recipient || "+234800000000") });
+          pmFields.push({ identifier: "name", value: String(recipientName || "Recipient") });
+        }
       }
 
       const pmResult = await this.addPaymentMethod({
@@ -379,7 +412,16 @@ class CashrampService {
    * Helper to map network identifiers to Cashramp's GraphQL enum
    * Enum values: celo, bsc, eth, matic, sol, op, base, btc, ltc, trx
    */
-  _mapNetwork(network) {
+  _mapNetwork(network, cryptoAsset) {
+    const isLive = config.cashramp?.env === "live";
+    const c = String(cryptoAsset || "").toUpperCase();
+
+    // In Cashramp test sandbox, staging liquidity for USDT is only active on CELO.
+    // In live/production, Cashramp supports USDT directly across MATIC (Polygon), BSC, CELO, etc.
+    if (!isLive && c === "USDT") {
+      return "celo";
+    }
+
     if (!network) return "matic";
     const net = String(network).toLowerCase();
     if (net.includes("polygon") || net.includes("matic") || net === "0x89") return "matic";
@@ -467,7 +509,7 @@ class CashrampService {
       params.onchainTransferInfo = {
         address: onchainAddress,
         cryptocurrency: this._mapCrypto(cryptoAsset),
-        network: this._mapNetwork(network),
+        network: this._mapNetwork(network, cryptoAsset),
       };
     }
 

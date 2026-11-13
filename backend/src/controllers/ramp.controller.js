@@ -1,4 +1,5 @@
 const cashrampService = require("../services/cashramp.service");
+const changeNowService = require("../services/changenow.service");
 const { KNOWN_MERCHANTS, REGIONAL_BANKS } = require("../data/merchants.data");
 
 class RampController {
@@ -206,6 +207,7 @@ class RampController {
         bankName,
         paymentMethodType,
         nimiqTxHash,
+        fields,
       } = req.body;
 
       if (!amount || parseFloat(amount) <= 0) {
@@ -227,6 +229,7 @@ class RampController {
         bankName,
         paymentMethodType,
         nimiqTxHash,
+        fields,
       });
 
       return res.json(result);
@@ -364,6 +367,129 @@ class RampController {
     } catch (err) {
       console.error("[Controller] cancelDeposit error:", err.message);
       return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  // ChangeNOW Exchange Bridge Methods
+  async getChangeNowCurrencies(req, res) {
+    try {
+      const { active, flow } = req.query;
+      const data = await changeNowService.getCurrencies({
+        active: active !== undefined ? active === "true" : true,
+        flow: flow || "standard",
+      });
+      return res.json({ success: true, data });
+    } catch (err) {
+      console.error("[Controller] getChangeNowCurrencies error:", err.message);
+      return res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  }
+
+  async getChangeNowMinAmount(req, res) {
+    try {
+      const {
+        fromCurrency = "nim",
+        toCurrency = "usdt",
+        fromNetwork = "nim",
+        toNetwork = "matic",
+        flow = "standard",
+      } = req.query;
+
+      const data = await changeNowService.getMinAmount({
+        fromCurrency,
+        toCurrency,
+        fromNetwork,
+        toNetwork,
+        flow,
+      });
+      return res.json({ success: true, data });
+    } catch (err) {
+      console.error("[Controller] getChangeNowMinAmount error:", err.message);
+      return res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  }
+
+  async getChangeNowEstimate(req, res) {
+    try {
+      const {
+        fromAmount,
+        fromCurrency = "nim",
+        toCurrency = "usdt",
+        fromNetwork = "nim",
+        toNetwork = "matic",
+        flow = "standard",
+      } = req.query;
+
+      if (!fromAmount || parseFloat(fromAmount) <= 0) {
+        return res.status(400).json({ success: false, error: "fromAmount is required and must be > 0" });
+      }
+
+      const data = await changeNowService.getEstimatedAmount({
+        fromAmount,
+        fromCurrency,
+        toCurrency,
+        fromNetwork,
+        toNetwork,
+        flow,
+      });
+      return res.json({ success: true, data });
+    } catch (err) {
+      console.error("[Controller] getChangeNowEstimate error:", err.message);
+      return res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  }
+
+  async createChangeNowExchange(req, res) {
+    try {
+      const {
+        fromCurrency = "nim",
+        toCurrency = "usdt",
+        fromNetwork = "nim",
+        toNetwork = "matic",
+        fromAmount,
+        address,
+        refundAddress,
+        extraId,
+        refundExtraId,
+      } = req.body;
+
+      if (!fromAmount || parseFloat(fromAmount) <= 0) {
+        return res.status(400).json({ success: false, error: "fromAmount is required" });
+      }
+      if (!address) {
+        return res.status(400).json({ success: false, error: "Destination payout address is required" });
+      }
+
+      const data = await changeNowService.createExchange({
+        fromCurrency,
+        toCurrency,
+        fromNetwork,
+        toNetwork,
+        fromAmount,
+        address,
+        refundAddress,
+        extraId,
+        refundExtraId,
+      });
+      return res.json({ success: true, exchange: data });
+    } catch (err) {
+      console.error("[Controller] createChangeNowExchange error:", err.message);
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        error: err.message,
+        details: err.response || null,
+      });
+    }
+  }
+
+  async getChangeNowStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const data = await changeNowService.getExchangeStatus(id);
+      return res.json({ success: true, status: data });
+    } catch (err) {
+      console.error("[Controller] getChangeNowStatus error:", err.message);
+      return res.status(err.statusCode || 500).json({ success: false, error: err.message });
     }
   }
 }

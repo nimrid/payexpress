@@ -29,6 +29,7 @@ export function App() {
     selectedChain,
     setSelectedChain,
     rate,
+    nimUsdRate,
     nimBalance,
     usdtBalance,
     evmAddress,
@@ -108,7 +109,18 @@ export function App() {
     cryptoAsset?: string;
   } | null>(null);
 
-  const handleCashOutConfirm = async (params: { phone: string; cryptoAmount: number; fiatAmount: number }) => {
+  const handleCashOutConfirm = async (params: {
+    recipient?: string;
+    phone?: string;
+    recipientName?: string;
+    accountNo?: string;
+    bankName?: string;
+    paymentMethodType?: string;
+    methodName?: string;
+    fields?: Record<string, string>;
+    cryptoAmount: number;
+    fiatAmount: number;
+  }) => {
     const tx = await executeCashOut(params);
     setActiveReceipt(tx);
     setCurrentView('home');
@@ -121,6 +133,7 @@ export function App() {
     paymentMethodType: string;
     methodName: string;
     amount: number;
+    fields?: Record<string, string>;
   }) => {
     try {
       const res = await API.initiateDeposit({
@@ -287,6 +300,8 @@ export function App() {
           <AddFunds
             country={activeCountry}
             cryptoAsset={activeCrypto}
+            rate={rate}
+            nimUsdRate={nimUsdRate}
             selectedChain={selectedChain}
             onOpenChainModal={() => setIsChainModalOpen(true)}
             onBack={() => setCurrentView('home')}
@@ -300,6 +315,7 @@ export function App() {
             cryptoAsset={activeCrypto}
             maxCryptoBalance={maxCryptoBalance}
             rate={rate}
+            nimUsdRate={nimUsdRate}
             selectedChain={selectedChain}
             onOpenChainModal={() => setIsChainModalOpen(true)}
             onBack={() => setCurrentView('home')}

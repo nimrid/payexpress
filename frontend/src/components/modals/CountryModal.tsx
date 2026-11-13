@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Check, Search, Globe, ShieldCheck } from 'lucide-react';
+import { X, Check, Search, Globe } from 'lucide-react';
 import { Country } from '../../types';
 import { useTranslation } from '../../i18n/useTranslation';
 
@@ -207,24 +207,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>{c.name}</span>
-                        {c.isLiveSandbox && (
-                          <span
-                            title="Live Cashramp Test API Sandbox"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px',
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              background: 'var(--color-emerald-light)',
-                              color: 'var(--color-emerald)',
-                              padding: '2px 6px',
-                              borderRadius: 'var(--radius-xs)',
-                            }}
-                          >
-                            <ShieldCheck size={11} /> LIVE SANDBOX
-                          </span>
-                        )}
+
                       </div>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
                         <span style={{ fontWeight: 800, color: 'var(--color-nimiq-gold-dark)' }}>{c.currency}</span> ({c.symbol}) • {c.dial}

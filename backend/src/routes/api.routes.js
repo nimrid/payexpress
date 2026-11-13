@@ -24,4 +24,11 @@ router.post("/initiate-deposit", (req, res) => rampController.initiateDeposit(re
 router.post("/mark-deposit-paid", (req, res) => rampController.markDepositPaid(req, res));
 router.post("/cancel-deposit", (req, res) => rampController.cancelDeposit(req, res));
 
+// ChangeNOW Swap / Bridge Endpoints
+router.get("/changenow/currencies", (req, res) => rampController.getChangeNowCurrencies(req, res));
+router.get("/changenow/min-amount", (req, res) => rampController.getChangeNowMinAmount(req, res));
+router.get("/changenow/estimate", (req, res) => rampController.getChangeNowEstimate(req, res));
+router.post("/changenow/exchange", (req, res) => rampController.createChangeNowExchange(req, res));
+router.get("/changenow/status/:id", (req, res) => rampController.getChangeNowStatus(req, res));
+
 module.exports = router;

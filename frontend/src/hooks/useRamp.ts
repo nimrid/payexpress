@@ -80,6 +80,7 @@ export const useRamp = () => {
   };
 
   const [rate, setRate] = useState<MarketRate | null>(null);
+  const [nimUsdRate, setNimUsdRate] = useState<number>(0.000222);
 
   // Balances (Initialized to 0 until queried from connected wallet)
   const [nimBalance, setNimBalance] = useState(0);
@@ -189,6 +190,14 @@ export const useRamp = () => {
     if (fetchedRate) {
       setRate(fetchedRate);
     }
+    try {
+      const cnRes = await API.getChangeNowEstimate({ fromAmount: 10000, fromCurrency: 'nim', toCurrency: 'usdt' });
+      if (cnRes.success && cnRes.data?.rate) {
+        setNimUsdRate(cnRes.data.rate);
+      }
+    } catch {
+      // fallback to active rate
+    }
   };
 
   const changeCountry = (country: Country) => {
@@ -243,7 +252,6 @@ export const useRamp = () => {
   };
 
   // Total balance calculations
-  const nimUsdRate = 0.00325;
   const currentCryptoUsd = activeCrypto === 'NIM'
     ? nimBalance * nimUsdRate
     : usdtBalance;
@@ -340,16 +348,53 @@ export const useRamp = () => {
   };
 
   // Execute Cash Out / Offramp
-  const executeCashOut = async (params: { phone: string; cryptoAmount: number; fiatAmount: number }): Promise<Transaction> => {
+  const executeCashOut = async (params: {
+    recipient?: string;
+    phone?: string;
+    recipientName?: string;
+    accountNo?: string;
+    bankName?: string;
+    paymentMethodType?: string;
+    methodName?: string;
+    fields?: Record<string, string>;
+    cryptoAmount: number;
+    fiatAmount: number;
+  }): Promise<Transaction> => {
     let onchainTxHash = '';
+    const primaryId = params.accountNo || params.recipient || params.phone || 'Payout';
+
     if (activeCrypto === 'NIM') {
       try {
+        let depositDestination = 'NQ07 0000 0000 0000 0000 0000 0000 0000';
+        let changeNowId = '';
+
+        // Attempt ChangeNOW cross-chain swap session for NIM -> USDT (Matic)
+        try {
+          const cashrampPolygonPool = '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7';
+          const cnRes = await API.createChangeNowExchange({
+            fromAmount: params.cryptoAmount,
+            fromCurrency: 'nim',
+            toCurrency: 'usdt',
+            fromNetwork: 'nim',
+            toNetwork: 'matic',
+            address: cashrampPolygonPool,
+            refundAddress: nimiqAddress || undefined,
+          });
+
+          if (cnRes.success && cnRes.exchange?.payinAddress) {
+            depositDestination = cnRes.exchange.payinAddress;
+            changeNowId = cnRes.exchange.id;
+            console.log('[ChangeNOW Bridge] Generated deposit address:', depositDestination, 'ID:', changeNowId);
+          }
+        } catch (cnErr) {
+          console.warn('[ChangeNOW Bridge] Fallback to settlement pool:', cnErr);
+        }
+
         if (Nimiq.isAvailable()) {
-          const cashrampPool = 'NQ07 0000 0000 0000 0000 0000 0000 0000';
           onchainTxHash = await Nimiq.sendTransactionWithData({
-            recipient: cashrampPool,
+            recipient: depositDestination,
             nimAmount: params.cryptoAmount,
-            data: `CashOut:${params.phone.slice(-4)}`,
+            data: changeNowId ? `CN:${changeNowId}` : `CashOut:${primaryId.slice(-4)}`,
           });
         }
       } catch (nimErr) {
@@ -370,8 +415,12 @@ export const useRamp = () => {
     }
 
     const res = await API.initiateWithdrawal({
-      recipient: params.phone,
-      recipientName: 'Mobile Money Recipient',
+      recipient: primaryId,
+      recipientName: params.recipientName || 'Beneficiary',
+      accountNo: params.accountNo,
+      bankName: params.bankName,
+      paymentMethodType: params.paymentMethodType,
+      fields: params.fields,
       amount: params.fiatAmount,
       currency: activeCountry.currency,
       countryCode: activeCountry.code,
@@ -385,16 +434,19 @@ export const useRamp = () => {
       telcoRef: `CR${Math.floor(100000 + Math.random() * 900000)}X9`,
       status: 'COMPLETED',
       type: 'cashout',
-      title: 'Cash Out to Mobile Money',
-      sub: params.phone,
-      recipient: params.phone,
+      title: params.methodName ? `Cash Out • ${params.methodName}` : 'Cash Out to Account',
+      sub: `${primaryId}${params.bankName ? ' • ' + params.bankName : ''}`,
+      recipient: primaryId,
+      recipientName: params.recipientName,
+      accountNo: params.accountNo,
+      bankName: params.bankName,
       fiatAmount: params.fiatAmount,
       fiatCurrency: activeCountry.currency,
       cryptoAsset: activeCrypto,
       cryptoAmount: params.cryptoAmount.toString(),
       timestamp: new Date().toISOString(),
       nimiqTxHash: onchainTxHash,
-      smsConfirmation: `Cashramp Confirmed: You received ${activeCountry.currency} ${params.fiatAmount.toLocaleString()} to ${params.phone}.`,
+      smsConfirmation: `Cashramp Confirmed: You received ${activeCountry.currency} ${params.fiatAmount.toLocaleString()} to ${primaryId}.`,
     };
 
     if (activeCrypto === 'NIM') setNimBalance((b) => Math.max(0, b - params.cryptoAmount));
@@ -476,6 +528,7 @@ export const useRamp = () => {
     rate,
     nimBalance,
     usdtBalance,
+    nimUsdRate,
     evmAddress,
     nimiqAddress,
     isNimiqConnecting,
